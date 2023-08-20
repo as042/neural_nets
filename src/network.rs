@@ -10,21 +10,9 @@ pub struct Network {
 }
 
 impl Network {
-    /// Creates a new `Network` with one input, layer, and neuron.
-    /// Use `Network::builder()` instead.
-    #[inline]
-    pub fn new() -> Self {
-        Network { 
-            input: vec![InputNeuron::new()], 
-            layers: vec![Layer::new()], 
-            neurons: vec![Neuron::new()], 
-            weights: vec![Weight::default()],
-        }
-    }
-
     /// Creates a builder helper.
     #[inline]
-    pub fn builder() -> NetworkBuilder {
+    pub fn new() -> NetworkBuilder {
         NetworkBuilder::new()
     }
 

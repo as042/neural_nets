@@ -1,3 +1,5 @@
+use crate::prelude::LayerBuilder;
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd)]
 pub struct Layer {
     pub(crate) neurons: usize,
@@ -7,11 +9,8 @@ pub struct Layer {
 impl Layer {
     /// Creates a new `InputNeuron`.
     #[inline]
-    pub fn new() -> Self {
-        Layer { 
-            neurons: 1, 
-            ..Default::default()
-        }
+    pub fn new() -> LayerBuilder {
+        LayerBuilder::new()
     }
 
     /// Returns the number of neurons of `self`.
