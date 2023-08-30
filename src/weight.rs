@@ -1,6 +1,6 @@
 #[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd)]
 pub struct Weight {
-    value: f64,
+    pub(crate) value: f64,
 }
 
 impl Weight {
