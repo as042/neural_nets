@@ -1,4 +1,4 @@
-use std::{f64::consts::E, fmt::format};
+use std::f64::consts::E;
 use rand::Rng;
 use genetic_optimization::prelude::*;
 
@@ -136,30 +136,32 @@ impl Network {
 
     /// Trains `self` using a genetic algorithm.
     #[inline]
-    pub fn genetic_train(&mut self, eval: fn(&Vec<f64>) -> f32) {
-        let mut genes = Vec::default();
+    pub fn genetic_train(&mut self, eval: fn(Vec<f64>) -> f64) {
+        let mut genome = Genome::new();
         for l in 0..self.layers.len() {
             for n in 0..self.layers[l].neurons {
-                genes.push((
-                    format!("l{l}n{n}(n{})", self.layers[l].neuron_start_idx + n),
-                    String::from("bias"), 
-                    Gene::new(self.neurons[n].bias as f32)
-                ));
-                
+                let mut chromo = Chromosome::new();
+                chromo.add_gene("bias", Gene::new(self.neurons[n].bias));
+
                 for w in 0..self.neurons[n].weights {
-                    genes.push((
-                        format!("l{l}n{n}(n{})", self.layers[l].neuron_start_idx + n), 
-                        format!("w{w}(w{})", self.neurons[n].weight_start_idx + w), 
-                        Gene::new(self.weights[self.neurons[n].weight_start_idx + w].value as f32)
-                    ));
+                    chromo.add_gene(
+                        format!("l{l}n{n}(n{})w{w}(w{})", self.layers[l].neuron_start_idx + n, self.neurons[n].weight_start_idx + w), 
+                        Gene::new(self.weights[self.neurons[n].weight_start_idx + w].value),
+                    );
                 }
+
+                genome.add_chromosome(format!("l{l}n{n}(n{})", self.layers[l].neuron_start_idx + n), &chromo);
             }
         }
         
-        let genes = genes.iter().map(|x| (x.0.as_str(), x.1.as_str(), x.2)).collect();
-        let genome = Genome::new(genes);
+        let genome = genome.build();
 
-        
+        let optimized = Simulation::new()
+            .genome(&genome)
+            .eval_with_util(genetic_evaluator, eval)
+            .parallelism(Parallelism::Auto)
+            .print_settings(PrintSettings::PrintFull)
+            .run(10);
     }
 }
 
@@ -170,7 +172,17 @@ fn sigmoid(x: f64) -> f64 {
 }
 
 #[inline]
-fn genetic_evaluator(genome: &Genome) -> f32 {
+fn genetic_evaluator(genome: &Genome, nn_eval: fn(Vec<f64>) -> f64) -> f64 {
+    let mut network = genome_to_network(genome);
+    
+    network.run(input)
+
+    0.0
+}
+
+#[inline]
+fn genome_to_network(genome: &Genome) -> Network {
+    // count layers
     let mut layers = 1;
     for chromo in genome.chromosomes() {
         let layer_idx: usize = chromo.0[1..chromo.0.find('n').unwrap()].parse().unwrap();
@@ -179,8 +191,47 @@ fn genetic_evaluator(genome: &Genome) -> f32 {
         }
     }
 
-    let mut network = Network::new();
-    
+    // parse important information
+    let mut network_layout: Vec<Vec<(&String, Chromosome)>> = vec![vec![]; layers];
+    for chromo in genome.chromosomes() {
+        let layer_idx: usize = chromo.0[1..chromo.0.find('n').unwrap()].parse().unwrap();
 
-    0.0
+        network_layout[layer_idx].push((chromo.0, chromo.1.clone()));
+    }
+
+    // build network
+    let network = Network::new();
+    for l in 0..network_layout.len() {
+        let layer = Layer::new();
+
+        layer.add_neurons(network_layout[l].len());
+
+        network.add_layer(layer);
+    }
+
+    let mut network = network.build();
+
+    // set params
+    let mut neurons = 0;
+    for l in 0..network_layout.len() {
+        for n in 0..network_layout[l].len() {
+            let mut bias = 0.0;
+            let mut weights = Vec::default();
+
+            for p in network_layout[l][n].1.genes() {
+                if p.0 == "bias" {
+                    bias = p.1.value();
+                }
+                else {
+                    weights.insert(p.0[p.0.find('w').unwrap() + 1..p.0.find('(').unwrap()].parse().unwrap(), p.1.value());
+                }
+            }
+
+            network.set_neuron_params(neurons, bias, weights);
+
+            neurons += 1;
+        }
+    }
+
+    network
 }
