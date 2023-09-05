@@ -19,22 +19,18 @@ impl NetworkBuilder {
 
     /// Adds a layer to the network.
     #[inline]
-    pub fn add_layer(&self, layer_builder: LayerBuilder) -> Self {
-        let mut new = self.clone();
-        new.layer_builders.push(layer_builder);
-
-        new
+    pub fn add_layer(&mut self, layer_builder: &LayerBuilder) -> &mut Self {
+        self.layer_builders.push(*layer_builder);
+        self
     }
 
     /// Adds a layer to the network multiple times.
     #[inline]
-    pub fn add_layers(&self, num: usize, layer_builder: LayerBuilder) -> Self {
-        let mut new = self.clone();
+    pub fn add_layers(&mut self, num: usize, layer_builder: &LayerBuilder) -> &mut Self {
         for _ in 0..num {
-            new.layer_builders.push(layer_builder);
+            self.layer_builders.push(*layer_builder);
         }
-
-        new
+        self
     }
 
     /// Builds the final `Network`.
@@ -78,10 +74,8 @@ impl LayerBuilder {
 
     /// Adds neurons to the layer.
     #[inline]
-    pub fn add_neurons(&self, neurons: usize) -> Self {
-        let mut new = self.clone();
-        new.neurons = neurons;
-
-        new
+    pub fn add_neurons(&mut self, neurons: usize) -> &mut Self {
+        self.neurons = neurons;
+        self
     }
 }

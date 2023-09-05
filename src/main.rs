@@ -1,5 +1,6 @@
 #![allow(unused_imports)]
 use neural_nets::prelude::*;
+use rand::Rng;
 
 fn main() {
     let mut net = Network::new()
@@ -7,10 +8,21 @@ fn main() {
         .add_layer(Layer::new().add_neurons(2))
         .build();
 
-    net.set_neuron_params(0, 0.3, vec![0.1, 0.5]);
-    net.set_neuron_params(1, -0.08, vec![-0.09, 2.1]);
-    net.run(vec![0.5, 0.1]);
+    println!("{:#?}", net);
+
+    net.genetic_train(test_util);
 
     println!("{:#?}", net);
-    println!("{:?}", net.output());
+}
+
+fn test_util(input: &Vec<f64>) -> Vec<f64> {
+    if input.is_empty() {
+        let mut rng = rand::thread_rng();
+        
+        return vec![0.0; 2].into_iter().map(|_| rng.gen::<f64>()).collect();
+    }
+
+    let score = -(input.iter().fold(0.0, |acc, x| acc + x)).abs();
+
+    vec![score]
 }

@@ -135,8 +135,11 @@ impl Network {
     }
 
     /// Trains `self` using a genetic algorithm.
+    /// Util is a function that handles two cases.
+    /// First, if input is empty, it returns the inputs to be used by the network.
+    /// Second, if non-empty, the input is interpreted as the output of running the network and is evaluated and assigned a score (the greater, the better).
     #[inline]
-    pub fn genetic_train(&mut self, eval: fn(Vec<f64>) -> f64) {
+    pub fn genetic_train(&mut self, util: fn(&Vec<f64>) -> Vec<f64>) {
         let mut genome = Genome::new();
         for l in 0..self.layers.len() {
             for n in 0..self.layers[l].neurons {
@@ -145,7 +148,7 @@ impl Network {
 
                 for w in 0..self.neurons[n].weights {
                     chromo.add_gene(
-                        format!("l{l}n{n}(n{})w{w}(w{})", self.layers[l].neuron_start_idx + n, self.neurons[n].weight_start_idx + w), 
+                        format!("l{l}n{n}(n{})w{w}[w{}]", self.layers[l].neuron_start_idx + n, self.neurons[n].weight_start_idx + w), 
                         Gene::new(self.weights[self.neurons[n].weight_start_idx + w].value),
                     );
                 }
@@ -158,10 +161,14 @@ impl Network {
 
         let optimized = Simulation::new()
             .genome(&genome)
-            .eval_with_util(genetic_evaluator, eval)
-            .parallelism(Parallelism::Auto)
+            .eval_with_util(genetic_evaluator, util)
+            .parallelism(Parallelism::Single)
             .print_settings(PrintSettings::PrintFull)
             .run(10);
+
+        let network = genome_to_network(&optimized, self.layers[0].neurons);
+
+        *self = network;
     }
 }
 
@@ -172,16 +179,20 @@ fn sigmoid(x: f64) -> f64 {
 }
 
 #[inline]
-fn genetic_evaluator(genome: &Genome, nn_eval: fn(Vec<f64>) -> f64) -> f64 {
-    let mut network = genome_to_network(genome);
-    
-    network.run(input)
+fn genetic_evaluator(genome: &Genome, util: fn(&Vec<f64>) -> Vec<f64>) -> f64 {
+    let input = util(&vec![]);
 
-    0.0
+    let mut network = genome_to_network(genome, input.len());
+    
+    network.run(input);
+
+    let output = network.output();
+
+    util(&output)[0]
 }
 
 #[inline]
-fn genome_to_network(genome: &Genome) -> Network {
+fn genome_to_network(genome: &Genome, input_len: usize) -> Network {
     // count layers
     let mut layers = 1;
     for chromo in genome.chromosomes() {
@@ -200,13 +211,14 @@ fn genome_to_network(genome: &Genome) -> Network {
     }
 
     // build network
-    let network = Network::new();
+    let mut network = Network::new();
+    network.add_layer(&Layer::new().add_neurons(input_len));
     for l in 0..network_layout.len() {
-        let layer = Layer::new();
+        let mut layer = Layer::new();
 
         layer.add_neurons(network_layout[l].len());
 
-        network.add_layer(layer);
+        network.add_layer(&layer);
     }
 
     let mut network = network.build();
@@ -223,7 +235,13 @@ fn genome_to_network(genome: &Genome) -> Network {
                     bias = p.1.value();
                 }
                 else {
-                    weights.insert(p.0[p.0.find('w').unwrap() + 1..p.0.find('(').unwrap()].parse().unwrap(), p.1.value());
+                    let idx: usize = p.0[p.0.find('w').unwrap() + 1..p.0.find('[').unwrap()].parse().unwrap();
+                    if idx > weights.len() {
+                        weights.push(p.1.value());
+                    }
+                    else {
+                        weights.insert(idx, p.1.value());
+                    }
                 }
             }
 
