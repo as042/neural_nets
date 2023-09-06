@@ -1,4 +1,5 @@
 #![allow(unused_imports)]
+use genetic_optimization::sim::Util;
 use neural_nets::prelude::*;
 use rand::Rng;
 
@@ -11,19 +12,24 @@ fn main() {
 
     println!("{:#?}", net);
 
-    net.genetic_train(test_util);
+    net.genetic_train(UtilTest);
 
     println!("{:#?}", net);
 }
 
-fn test_util(input: &Vec<f64>) -> Vec<f64> {
-    if input.is_empty() {
+#[derive(Clone, Copy, Default)]
+pub struct UtilTest;
+
+impl Util for UtilTest {
+    fn gen_input() -> Vec<f64> {
         let mut rng = rand::thread_rng();
         
-        return vec![0.0; 3].into_iter().map(|_| rng.gen::<f64>()).collect();
+        vec![0.0; 3].into_iter().map(|_| rng.gen::<f64>()).collect()
     }
 
-    let score = -(0.21 - input.iter().fold(0.0, |acc, x| acc + x)).abs();
+    fn evaluate(_input: Option<&Vec<f64>>, output: &Vec<f64>) -> f64 {
+        let score = -(0.21 - output.iter().fold(0.0, |acc, x| acc + x)).abs();
 
-    vec![score]
+        score
+    }
 }

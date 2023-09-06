@@ -101,7 +101,7 @@ impl Network {
 
     /// Runs `self` with the given input.
     #[inline]
-    pub fn run(&mut self, input: Vec<f64>) {
+    pub fn run(&mut self, input: &Vec<f64>) {
         assert_eq!(input.len(), self.input_layer.len());
 
         // set input layer
@@ -139,7 +139,7 @@ impl Network {
     /// First, if input is empty, it returns the inputs to be used by the network.
     /// Second, if non-empty, the input is interpreted as the output of running the network and is evaluated and assigned a score (the greater, the better).
     #[inline]
-    pub fn genetic_train(&mut self, util: fn(&Vec<f64>) -> Vec<f64>) {
+    pub fn genetic_train<U: Util + Copy + Default + Send + 'static>(&mut self, util: U) {
         let mut genome = Genome::new();
         for l in 0..self.layers.len() {
             for n in 0..self.layers[l].neurons {
@@ -159,9 +159,9 @@ impl Network {
         
         let genome = genome.build();
 
-        let optimized = Simulation::new()
+        let optimized = SimulationWithUtil::new()
             .genome(&genome)
-            .eval_with_util(genetic_evaluator, util)
+            .eval_with_util(genetic_evaluator::<U>, util)
             .parallelism(Parallelism::Single)
             .print_settings(PrintSettings::PrintFull)
             .run(10);
@@ -179,16 +179,16 @@ fn sigmoid(x: f64) -> f64 {
 }
 
 #[inline]
-fn genetic_evaluator(genome: &Genome, util: fn(&Vec<f64>) -> Vec<f64>) -> f64 {
-    let input = util(&vec![]);
+fn genetic_evaluator<U: Util>(genome: &Genome) -> f64 {
+    let input = U::gen_input();
 
     let mut network = genome_to_network(genome, input.len());
     
-    network.run(input);
+    network.run(&input);
 
     let output = network.output();
 
-    util(&output)[0]
+    U::evaluate(Some(&input), &output)
 }
 
 #[inline]

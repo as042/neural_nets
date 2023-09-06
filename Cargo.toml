@@ -7,4 +7,4 @@ edition = "2021"
 
 [dependencies]
 rand = "0.8.5"
-genetic_optimization = "0.4.1"
+genetic_optimization = "0.5.1"
