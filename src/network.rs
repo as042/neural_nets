@@ -139,17 +139,17 @@ impl Network {
     /// First, if input is empty, it returns the inputs to be used by the network.
     /// Second, if non-empty, the input is interpreted as the output of running the network and is evaluated and assigned a score (the greater, the better).
     #[inline]
-    pub fn genetic_train<U: Util + Copy + Default + Send + 'static>(&mut self, util: U) {
+    pub fn genetic_train<U: Util + Copy + Default + Send + 'static>(&mut self, util: U, generations: usize) {
         let mut genome = Genome::new();
         for l in 0..self.layers.len() {
             for n in 0..self.layers[l].neurons {
                 let mut chromo = Chromosome::new();
-                chromo.add_gene("bias", Gene::new(self.neurons[n].bias));
+                chromo.add_gene("bias", Gene::new_with_range(self.neurons[n].bias, -1E9, 1E9));
 
-                for w in 0..self.neurons[n].weights {
+                for w in 0..self.neurons[self.layers[l].neuron_start_idx + n].weights {
                     chromo.add_gene(
                         format!("l{l}n{n}(n{})w{w}[w{}]", self.layers[l].neuron_start_idx + n, self.neurons[n].weight_start_idx + w), 
-                        Gene::new(self.weights[self.neurons[n].weight_start_idx + w].value),
+                        Gene::new_with_range(self.weights[self.neurons[n].weight_start_idx + w].value, -1E9, 1E9),
                     );
                 }
 
@@ -162,11 +162,11 @@ impl Network {
         let optimized = SimulationWithUtil::new()
             .genome(&genome)
             .eval_with_util(genetic_evaluator::<U>, util)
-            .parallelism(Parallelism::Single)
+            .parallelism(Parallelism::Auto)
             .print_settings(PrintSettings::PrintFull)
-            .run(10);
+            .run(generations);
 
-        let network = genome_to_network(&optimized, self.layers[0].neurons);
+        let network = genome_to_network(&optimized, self.input_layer.len());
 
         *self = network;
     }
@@ -175,7 +175,7 @@ impl Network {
 // sigmoid function
 #[inline]
 fn sigmoid(x: f64) -> f64 {
-    1.0 / (1.0 + E.powf(-x))
+    x//1.0 / (1.0 + E.powf(-x))
 }
 
 #[inline]
