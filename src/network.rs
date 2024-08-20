@@ -1,5 +1,7 @@
 use std::f64::consts::E;
-use rand::Rng;
+use rand::{thread_rng, Rng, SeedableRng};
+use rand_chacha::ChaCha8Rng;
+use autodiff::*;
 
 use crate::{layer::Layer, neuron::Neuron, weight::Weight, input_neuron::InputNeuron, network_builder::NetworkBuilder};
 
@@ -61,13 +63,19 @@ impl Network {
         &self.weights[idx]
     }
 
+    /// Returns the last layer of `self`.
+    #[inline]
+    pub fn last_layer(&self) -> &Layer {
+        self.layers.last().unwrap()
+    }
+
     /// Returns the output of `self`.
     #[inline]
     pub fn output(&self) -> Vec<f64> {
         let mut vec = Vec::default();
 
-        for n in 0..self.layers.last().unwrap().neurons {
-            vec.push(self.neurons[self.layers.last().unwrap().neuron_start_idx + n].activation)
+        for n in 0..self.last_layer().neurons {
+            vec.push(self.neurons[self.last_layer().neuron_start_idx + n].activation)
         }
 
         vec
@@ -75,14 +83,22 @@ impl Network {
 
     /// Randomizes all weights and biases of `self`.
     #[inline]
-    pub fn randomize_params(&mut self) {
-        let mut rng = rand::thread_rng();
+    pub fn randomize_params(&mut self, seed: Option<u64>) {
+        let mut rng;
+        if seed.is_some() {
+            rng = ChaCha8Rng::seed_from_u64(seed.unwrap());
+        }
+        else {
+            let mut thread_rng = thread_rng();
+            rng = ChaCha8Rng::seed_from_u64(thread_rng.gen());
+        }
 
         for w in 0..self.weights.len() {
-            self.weights[w].value = rng.gen_range(-2.0..2.0);
+            
+            self.weights[w].value = rng.gen_range(-2.0 - 0.01 * w as f64..2.0 + 0.01 * w as f64);
         }
         for b in 0..self.neurons.len() {
-            self.neurons[b].bias = rng.gen_range(-2.0..2.0);
+            self.neurons[b].bias = rng.gen_range(-2.0 - 0.02 * b as f64..2.0 + 0.02 * b as f64);
         }
     }
 
@@ -133,9 +149,94 @@ impl Network {
         }
     }
 
-    // sigmoid function
     #[inline]
-    fn sigmoid(x: f64) -> f64 {
+    fn run_no_self(x: &[FT<f64>]) -> FT<f64> {
+        let mut net = Network::new();
+        let width = x[0].to_usize().unwrap();
+        let height = x[1].to_usize().unwrap();
+
+        for _ in 0..width {
+            net.add_layer(Layer::new().add_neurons(height));
+        }
+
+        let mut net = net.build();
+
+        for w in 0..(width - 1) * height.pow(2) {
+            net.weights[w].value = x[w + 2].into();
+        }
+
+        for b in 0..(width -1) * height {
+            net.neurons[b].bias = x[b + 2 + (width - 1) * height.pow(2)].into();
+        }
+
+        let mut input = Vec::<f64>::default();
+        for i in 0..height {
+            input.push(x[i + 2 + (width - 1) * height.pow(2) + (width -1) * height].into());
+        }
+
+        let mut desired_output = Vec::<f64>::default();
+        for o in 0..height {
+            desired_output.push(x[o + 2 + (width - 1) * height.pow(2) + (width -1) * height + height].into());
+        }
+
+        net.run(&input);
+
+        net.total_cost(&desired_output).into()
+    }
+
+    /// Runs `self` with the given input and adjusts params to minimize cost.
+    #[inline]
+    pub fn train(&mut self, input: &Vec<f64>, desired_output: &Vec<f64>) -> Vec<f64> {
+        let mut x = Vec::default();
+
+        x.push((self.layers().len() as f64 + 1.0).into());
+        x.push((self.input_layer.len() as f64).into());
+
+        for w in self.weights() {
+            x.push(w.value());
+        }
+
+        for n in self.neurons() {
+            x.push(n.bias());
+        }
+
+        for i in input {
+            x.push(i.clone());
+        }
+
+        for o in desired_output {
+            x.push(o.clone());
+        }
+
+        let grad = grad(Self::run_no_self, x.as_slice());
+
+        grad
+    }
+
+    /// Computes square error.
+    #[inline]
+    pub fn cost(output: f64, desired_output: f64) -> f64 {
+        (output - desired_output).powf(2.0)
+    }
+
+    /// Computes total square error.
+    #[inline]
+    pub fn total_cost(&self, desired_output: &Vec<f64>) -> f64 {
+        let mut total_cost = 0.0;
+        let output = self.output();
+
+        if output.len() != desired_output.len() { panic!("Output layer must have same len as desired output") }
+
+        for j in 0..output.len() {
+            total_cost += Self::cost(output[j], desired_output[j]);
+        }
+
+        total_cost
+    }
+
+    /// Computes the sigmoid "squishification" function of the given value.
+    #[inline]
+    pub fn sigmoid(x: f64) -> f64 {
         1.0 / (1.0 + E.powf(-x))
     }
 }
