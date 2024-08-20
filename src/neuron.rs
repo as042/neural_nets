@@ -1,7 +1,9 @@
+use autodiff::*;
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd)]
 pub struct Neuron {
-    pub(crate) activation: f64,
-    pub(crate) bias: f64,
+    pub(crate) activation: FT<f64>,
+    pub(crate) bias: FT<f64>,
     pub(crate) weights: usize,
     pub(crate) weight_start_idx: usize,
 }
@@ -18,13 +20,13 @@ impl Neuron {
 
     /// Returns the activation of `self`.
     #[inline]
-    pub fn activation(&self) -> f64 {
+    pub fn activation(&self) -> FT<f64> {
         self.activation
     }
 
     /// Returns the bias of `self`.
     #[inline]
-    pub fn bias(&self) -> f64 {
+    pub fn bias(&self) -> FT<f64> {
         self.bias
     }
 

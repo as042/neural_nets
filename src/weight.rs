@@ -1,12 +1,14 @@
+use autodiff::*;
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd)]
 pub struct Weight {
-    pub(crate) value: f64,
+    pub(crate) value: FT<f64>,
 }
 
 impl Weight {
     /// Creates a new `InputNeuron`.
     #[inline]
-    pub fn new(value: f64) -> Self {
+    pub fn new(value: FT<f64>) -> Self {
         Weight {
             value
         }
@@ -14,7 +16,7 @@ impl Weight {
 
     /// Returns the value of `self`.
     #[inline]
-    pub fn value(&self) -> f64 {
+    pub fn value(&self) -> FT<f64> {
         self.value
     }
 }

@@ -1,6 +1,8 @@
+use autodiff::*;
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd)]
 pub struct InputNeuron {
-    pub(crate) activation: f64,
+    pub(crate) activation: FT<f64>,
 }
 
 impl InputNeuron {
@@ -12,7 +14,7 @@ impl InputNeuron {
 
     /// Returns the activation of `self`.
     #[inline]
-    pub fn activation(&self) -> f64 {
+    pub fn activation(&self) -> FT<f64> {
         self.activation
     }
 }
