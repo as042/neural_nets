@@ -26,6 +26,6 @@ impl Util for Identity {
     fn evaluate(input: Option<&Vec<f64>>, output: &Vec<f64>) -> f64 {
         let score = -(input.unwrap()[0] - output[0]).abs();
 
-        output[0]
+        score
     }
 }

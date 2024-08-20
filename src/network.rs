@@ -175,7 +175,7 @@ impl Network {
 // sigmoid function
 #[inline]
 fn sigmoid(x: f64) -> f64 {
-    x//1.0 / (1.0 + E.powf(-x))
+    1.0 / (1.0 + E.powf(-x))
 }
 
 #[inline]
