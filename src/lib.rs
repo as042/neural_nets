@@ -7,5 +7,4 @@ pub mod network_builder;
 
 pub mod prelude {
     pub use crate::{network::*, network_builder::*, layer::*};
-    pub use genetic_optimization::sim::Util;
 }

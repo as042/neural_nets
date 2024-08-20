@@ -1,11 +1,10 @@
 use std::f64::consts::E;
 use rand::Rng;
-use genetic_optimization::prelude::*;
 
 use crate::{layer::Layer, neuron::Neuron, weight::Weight, input_neuron::InputNeuron, network_builder::NetworkBuilder};
 
-#[derive(Clone, Debug, Default, PartialEq, PartialOrd)]
 /// A network object. `layers` refers to non-input layers.
+#[derive(Clone, Debug, Default, PartialEq, PartialOrd)]
 pub struct Network {
     pub(crate) input_layer: Vec<InputNeuron>,
     pub(crate) layers: Vec<Layer>,
@@ -117,7 +116,7 @@ impl Network {
                 sum += self.weights[self.neurons[n].weight_start_idx + w].value() * self.input_layer[w].activation;
             }
 
-            self.neurons[n].activation = sigmoid(sum);
+            self.neurons[n].activation = Self::sigmoid(sum);
         }
 
         // compute all other layers
@@ -129,127 +128,14 @@ impl Network {
                     sum += self.weights[self.neurons[n].weight_start_idx + w].value() * self.neurons[self.layers[l - 1].neuron_start_idx + w].activation;
                 }
     
-                self.neurons[self.layers[l].neuron_start_idx + n].activation = sigmoid(sum);
+                self.neurons[self.layers[l].neuron_start_idx + n].activation = Self::sigmoid(sum);
             }
         }
     }
 
-    /// Trains `self` using a genetic algorithm.
-    /// Util is a function that handles two cases.
-    /// First, if input is empty, it returns the inputs to be used by the network.
-    /// Second, if non-empty, the input is interpreted as the output of running the network and is evaluated and assigned a score (the greater, the better).
+    // sigmoid function
     #[inline]
-    pub fn genetic_train<U: Util + Copy + Default + Send + 'static>(&mut self, util: U, generations: usize) {
-        let mut genome = Genome::new();
-        for l in 0..self.layers.len() {
-            for n in 0..self.layers[l].neurons {
-                let mut chromo = Chromosome::new();
-                chromo.add_gene("bias", Gene::new_with_range(self.neurons[n].bias, -1E9, 1E9));
-
-                for w in 0..self.neurons[self.layers[l].neuron_start_idx + n].weights {
-                    chromo.add_gene(
-                        format!("l{l}n{n}(n{})w{w}[w{}]", self.layers[l].neuron_start_idx + n, self.neurons[n].weight_start_idx + w), 
-                        Gene::new_with_range(self.weights[self.neurons[n].weight_start_idx + w].value, -1E9, 1E9),
-                    );
-                }
-
-                genome.add_chromosome(format!("l{l}n{n}(n{})", self.layers[l].neuron_start_idx + n), &chromo);
-            }
-        }
-        
-        let genome = genome.build();
-
-        let optimized = SimulationWithUtil::new()
-            .genome(&genome)
-            .eval_with_util(genetic_evaluator::<U>, util)
-            .parallelism(Parallelism::Auto)
-            .print_settings(PrintSettings::PrintFull)
-            .run(generations);
-
-        let network = genome_to_network(&optimized, self.input_layer.len());
-
-        *self = network;
+    fn sigmoid(x: f64) -> f64 {
+        1.0 / (1.0 + E.powf(-x))
     }
-}
-
-// sigmoid function
-#[inline]
-fn sigmoid(x: f64) -> f64 {
-    1.0 / (1.0 + E.powf(-x))
-}
-
-#[inline]
-fn genetic_evaluator<U: Util>(genome: &Genome) -> f64 {
-    let input = U::gen_input();
-
-    let mut network = genome_to_network(genome, input.len());
-    
-    network.run(&input);
-
-    let output = network.output();
-
-    U::evaluate(Some(&input), &output)
-}
-
-#[inline]
-fn genome_to_network(genome: &Genome, input_len: usize) -> Network {
-    // count layers
-    let mut layers = 1;
-    for chromo in genome.chromosomes() {
-        let layer_idx: usize = chromo.0[1..chromo.0.find('n').unwrap()].parse().unwrap();
-        if layer_idx + 1 > layers {
-            layers = layer_idx + 1;
-        }
-    }
-
-    // parse important information
-    let mut network_layout: Vec<Vec<(&String, Chromosome)>> = vec![vec![]; layers];
-    for chromo in genome.chromosomes() {
-        let layer_idx: usize = chromo.0[1..chromo.0.find('n').unwrap()].parse().unwrap();
-
-        network_layout[layer_idx].push((chromo.0, chromo.1.clone()));
-    }
-
-    // build network
-    let mut network = Network::new();
-    network.add_layer(&Layer::new().add_neurons(input_len));
-    for l in 0..network_layout.len() {
-        let mut layer = Layer::new();
-
-        layer.add_neurons(network_layout[l].len());
-
-        network.add_layer(&layer);
-    }
-
-    let mut network = network.build();
-
-    // set params
-    let mut neurons = 0;
-    for l in 0..network_layout.len() {
-        for n in 0..network_layout[l].len() {
-            let mut bias = 0.0;
-            let mut weights = Vec::default();
-
-            for p in network_layout[l][n].1.genes() {
-                if p.0 == "bias" {
-                    bias = p.1.value();
-                }
-                else {
-                    let idx: usize = p.0[p.0.find('w').unwrap() + 1..p.0.find('[').unwrap()].parse().unwrap();
-                    if idx > weights.len() {
-                        weights.push(p.1.value());
-                    }
-                    else {
-                        weights.insert(idx, p.1.value());
-                    }
-                }
-            }
-
-            network.set_neuron_params(neurons, bias, weights);
-
-            neurons += 1;
-        }
-    }
-
-    network
 }
