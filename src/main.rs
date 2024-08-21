@@ -1,7 +1,7 @@
 #![allow(unused_imports)]
 use std::f64::consts::E;
 
-use neural_nets::{prelude::*, training::{ActivationFunction, RunSettings}};
+use neural_nets::prelude::*;
 use rand::Rng;
 use autodiff::*;
 
@@ -13,25 +13,12 @@ fn main() {
 
     net.randomize_params(None);
 
-    let settings = &RunSettings::new(
-        vec![0.2, 0.15], 
-        ActivationFunction::ReLU
-    );
-    let desired_output = vec![0.5, 0.7];
-
-    net.run(settings);
-    let init_cost = net.total_cost(&desired_output.iter().map(|f| F::new(*f, 0.0)).collect());
-
-    for _ in 0..10000 {
-        println!("{:?}", net.train(settings, 
-            &vec![0.5, 0.7], 
-            0.1).cost()
-        );
+    for _ in 0..100 {
+        net.train(&vec![0.2.into(), 0.15.into()], &vec![0.5.into(), 0.7.into()], 0.1.into());
+        println!("{}", net.total_cost(&vec![0.5.into(), 0.7.into()]));
     }
 
-    println!("{init_cost}");
-
-    // println!("{:#?}", net);
+    // panic!("{:#?}", net);
 
     // panic!("{}, {:?}", tnn(&[F::new(0.1, 0.0), F::new(-0.1, 0.0)]), grad(tnn, &[0.203, 0.106]));
 }
