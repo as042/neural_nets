@@ -1,4 +1,5 @@
 pub mod network;
+pub mod training;
 pub mod input_neuron;
 pub mod layer;
 pub mod neuron;
