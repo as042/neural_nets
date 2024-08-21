@@ -7,5 +7,5 @@ pub mod weight;
 pub mod network_builder;
 
 pub mod prelude {
-    pub use crate::{network::*, network_builder::*, layer::*};
+    pub use crate::{network::*, training::*, network_builder::*, layer::*};
 }

@@ -12,9 +12,31 @@ pub enum ActivationFunction {
 
 #[derive(Clone, Debug, Default, PartialEq, PartialOrd)]
 pub struct RunSettings {
-    input: Vec<f64>,
+    input: Vec<FT<f64>>,
     activation_fn: ActivationFunction,
     print: bool,
+}
+
+impl RunSettings {
+    /// Creates a new `Self` with the given input and activation function.
+    #[inline]
+    pub fn new(input: Vec<f64>, activation_fn: ActivationFunction) -> Self {
+        RunSettings {
+            input: input.iter().map(|f| F::new(*f, 0.0)).collect(),
+            activation_fn,
+            print: false,
+        }
+    }
+
+    /// Creates a new `Self` with the given input and activation function and has printing enabled.
+    #[inline]
+    pub fn new_with_print(input: Vec<f64>, activation_fn: ActivationFunction) -> Self {
+        RunSettings {
+            input: input.iter().map(|f| F::new(*f, 0.0)).collect(),
+            activation_fn,
+            print: true,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq, PartialOrd)]
@@ -32,32 +54,12 @@ impl TrainingResults {
     }
 }
 
-impl RunSettings {
-    /// Creates a new `Self` with the given input and activation function.
-    #[inline]
-    pub fn new(input: Vec<f64>, activation_fn: ActivationFunction) -> Self {
-        RunSettings {
-            input: input,
-            activation_fn,
-            print: false,
-        }
-    }
-
-    /// Creates a new `Self` with the given input and activation function and has printing enabled.
-    #[inline]
-    pub fn new_with_print(input: Vec<f64>, activation_fn: ActivationFunction) -> Self {
-        RunSettings {
-            input: input,
-            activation_fn,
-            print: true,
-        }
-    }
-}
-
 impl Network {    
     /// Runs `self` with the given input.
     #[inline]
-    pub fn run(&mut self, input: &Vec<FT<f64>>) {
+    pub fn run(&mut self, settings: &RunSettings) {
+        let input = &settings.input;
+
         assert_eq!(input.len(), self.input_layer.len());
 
         // set input layer
@@ -68,26 +70,40 @@ impl Network {
         // compute first layer
         for n in 0..self.layers[0].neurons {
             let mut sum = self.neurons[n].bias;
-            
+
             for w in 0..self.input_layer.len() {
                 sum += self.weights[self.neurons[n].weight_start_idx + w].value() * self.input_layer[w].activation;
             }
 
-            self.neurons[n].activation = Self::sigmoid(sum).into();
+            self.neurons[n].activation = if settings.activation_fn == ActivationFunction::Sigmoid {
+                Self::sigmoid(sum)
+            }
+            else {
+                Self::relu(sum)
+            }
         }
 
         // compute all other layers
         for l in 1..self.layers.len() {
             for n in 0..self.layers[l].neurons {
                 let mut sum = self.neurons[n].bias;
-                
+
                 for w in 0..self.layers[l - 1].neurons {
                     sum += self.weights[self.neurons[n].weight_start_idx + w].value() * self.neurons[self.layers[l - 1].neuron_start_idx + w].activation;
                 }
-    
-                self.neurons[self.layers[l].neuron_start_idx + n].activation = Self::sigmoid(sum).into();
+
+                self.neurons[n].activation = if settings.activation_fn == ActivationFunction::Sigmoid {
+                    Self::sigmoid(sum)
+                }
+                else {
+                    Self::relu(sum)
+                }
             }
         }
+
+        // if settings.print {
+        //     println!("Output: {:?}", self.output());
+        // }
     }
 
     #[inline]
@@ -103,29 +119,52 @@ impl Network {
         let mut net = net.build();
 
         for w in 0..(width - 1) * height.pow(2) {
-            net.weights[w].value = x[w + 2].into();
+            net.weights[w].value = x[w + 2];
         }
         for b in 0..(width -1) * height {
-            net.neurons[b].bias = x[b + 2 + (width - 1) * height.pow(2)].into();
+            net.neurons[b].bias = x[b + 2 + (width - 1) * height.pow(2)];
         }
 
         let mut input = Vec::<FT<f64>>::default();
         for i in 0..height {
-            input.push(x[i + 2 + (width - 1) * height.pow(2) + (width -1) * height].into());
+            input.push(x[i + 2 + (width - 1) * height.pow(2) + (width -1) * height]);
         }
         let mut desired_output = Vec::<FT<f64>>::default();
         for o in 0..height {
-            desired_output.push(x[o + 2 + (width - 1) * height.pow(2) + (width -1) * height + height].into());
+            desired_output.push(x[o + 2 + (width - 1) * height.pow(2) + (width -1) * height + height]);
         }
 
-        net.run(&input);
+        let settings = RunSettings {
+            input,
+            activation_fn: match x.last().unwrap().to_i32().unwrap().abs() {
+                1 => ActivationFunction::Sigmoid,
+                2 => ActivationFunction::ReLU,
+                _ => panic!("Invalid value"),
+            },
+            print: match x.last().unwrap().to_i32().unwrap().signum() {
+                -1 => true,
+                1 => false,
+                _ => panic!(),
+            },
+        };
 
-        net.total_cost(&desired_output).into()
+        net.run(&settings);
+
+        let total_cost = net.total_cost(&desired_output).into();
+
+        // if settings.print {
+        //     println!("Total cost: {}", total_cost);
+        // }
+
+        total_cost
     }
 
     /// Runs `self` with the given input and adjusts params to minimize cost.
     #[inline]
-    pub fn train(&mut self, input: &Vec<FT<f64>>, desired_output: &Vec<FT<f64>>, eta: FT<f64>) -> Vec<f64> {
+    pub fn train(&mut self, settings: &RunSettings, desired_output: &Vec<f64>, eta: f64) -> TrainingResults {
+        let input = &settings.input;
+        let desired_output: Vec<F<f64, f64>> = desired_output.iter().map(|f| F::new(*f, 0.0)).collect();
+
         let mut x = Vec::<f64>::default();
 
         x.push((self.layers().len() as f64 + 1.0).into());
@@ -140,11 +179,16 @@ impl Network {
         for i in input {
             x.push(i.clone().into());
         }
-        for o in desired_output {
+        for o in &desired_output {
             x.push(o.clone().into());
         }
 
-        self.run(input);
+        x.push(match settings.activation_fn {
+            ActivationFunction::Sigmoid => 1.0,
+            ActivationFunction::ReLU => 2.0,
+        } * if settings.print { -1.0 } else { 1.0 });
+
+        self.run(settings);
 
         let grad = grad(Self::run_diff, x.as_slice());
 
@@ -156,7 +200,11 @@ impl Network {
             self.neurons[b].bias -= eta * grad[b + weights_len + 2];
         }
 
-        grad
+        TrainingResults {
+            grad,
+            output: self.output().iter().map(|f| f.to_f64().unwrap()).collect(),
+            cost: self.total_cost(&desired_output).to_f64().unwrap(),
+        }
     }
 
     /// Computes square error.
