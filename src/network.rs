@@ -15,6 +15,37 @@ pub struct Network {
 
 impl Network {
     /// Creates a builder helper.
+    /// # Examples
+    /// ```
+    /// let mut net = Network::new()
+    ///     .add_layer(Layer::new().add_neurons(1))
+    ///     .add_layer(Layer::new().add_neurons(3))
+    ///     .add_layer(Layer::new().add_neurons(5))
+    ///     .add_layer(Layer::new().add_neurons(9))
+    ///     .add_layer(Layer::new().add_neurons(3))
+    ///     .build();
+    ///
+    /// net.randomize_params(None);
+    ///
+    /// let settings = &RunSettings::new(
+    ///     vec![0.2], 
+    ///     ActivationFunction::Tanh,
+    ///     true
+    /// );
+    /// let desired_output = vec![0.5, 0.7, 0.56];
+    ///
+    /// net.run(settings);
+    /// let init_cost = net.total_cost(&desired_output.iter().map(|f| F::new(*f, 0.0)).collect());
+    ///
+    /// for _ in 0..1000 {
+    ///     println!("{:?}", net.train(settings, 
+    ///         &vec![0.5, 0.7, 0.56], 
+    ///         0.1).cost()
+    ///     );
+    /// }
+    ///
+    /// println!("{init_cost}");
+    /// ```
     #[inline]
     pub fn new() -> NetworkBuilder {
         NetworkBuilder::new()
@@ -93,7 +124,6 @@ impl Network {
         }
 
         for w in 0..self.weights.len() {
-            
             self.weights[w].value = rng.gen_range(-2.0 - 0.01 * w as f64..2.0 + 0.01 * w as f64).into();
         }
         for b in 0..self.neurons.len() {
