@@ -8,9 +8,7 @@ use autodiff::*;
 fn main() {
     let mut net = Network::new()
         .add_layer(Layer::new().add_neurons(1))
-        .add_layer(Layer::new().add_neurons(3))
-        .add_layer(Layer::new().add_neurons(5))
-        .add_layer(Layer::new().add_neurons(9))
+        .add_layer(Layer::new().add_neurons(100))
         .add_layer(Layer::new().add_neurons(3))
         .build();
 
@@ -18,7 +16,7 @@ fn main() {
 
     let settings = &RunSettings::new(
         vec![0.2], 
-        ActivationFunction::Tanh,
+        ActivationFunction::Sigmoid,
         true
     );
     let desired_output = vec![0.5, 0.7, 0.56];
