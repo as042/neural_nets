@@ -143,3 +143,41 @@ impl Network {
         }
     }
 }
+
+#[test]
+fn test_set_neuron_params() {
+    let mut net = Network::new()
+    .add_layer(Layer::new().add_neurons(1))
+    .add_layer(Layer::new().add_neurons(1))
+    .build();
+
+    net.set_neuron_params(0, FT::new(0.1, 0.0), vec![F::new(0.3, 0.0)]);
+
+    assert_eq!(net, 
+        Network { 
+            input_layer: vec![InputNeuron::default()], 
+            layers: vec![Layer { neurons: 1, ..Default::default() }], 
+            neurons: vec![Neuron { bias: F::new(0.1, 0.0), weights: 1, ..Default::default() }], 
+            weights: vec![Weight { value: F::new(0.3, 0.0) }],
+        }
+    );
+}
+
+#[test]
+fn test_randomize_params() {
+    let mut net = Network::new()
+        .add_layer(Layer::new().add_neurons(1))
+        .add_layer(Layer::new().add_neurons(1))
+        .build();
+
+    net.randomize_params(Some(0));
+
+    assert_eq!(net, 
+        Network { 
+            input_layer: vec![InputNeuron::default()], 
+            layers: vec![Layer { neurons: 1, ..Default::default() }], 
+            neurons: vec![Neuron { bias: F::new(-0.1363131108415594, 0.0), weights: 1, ..Default::default() }], 
+            weights: vec![Weight { value: F::new(0.8363016617062469, 0.0) }],
+        }
+    );
+} 

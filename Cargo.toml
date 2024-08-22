@@ -9,3 +9,7 @@ edition = "2021"
 rand = "0.8.5"
 rand_chacha = "0.3.1"
 autodiff = "0.7.0"
+reverse = "0.2.2"
+
+[lib]
+doctest = false
