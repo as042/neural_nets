@@ -15,8 +15,6 @@ pub enum ActivationFunction {
 }
 
 impl Network {
-    
-
     /// Computes the sigmoid "squishification" function of the given value.
     #[inline]
     pub fn sigmoid(x: FT<f64>) -> FT<f64> {
