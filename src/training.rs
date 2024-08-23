@@ -1,6 +1,6 @@
 use reverse::*;
 
-use crate::{layer::Layer, network::Network, prelude::ActivationFn, running::RunSettings};
+use crate::{layer::*, network::Network, prelude::ActivationFn, running::RunSettings};
 
 #[derive(Clone, Debug, Default, PartialEq, PartialOrd)]
 pub struct TrainingResults {
@@ -88,25 +88,17 @@ impl Network {
         data.push(f64::NAN);
 
         // add necessary settings
-        data.push(if settings.print { -1.0 } else { 1.0 });
+        data.push(if settings.print { -1.0 } else { 1.0 } * if settings.clamp { 2.0 } else { 1.0 });
 
         data
     }
 
     #[inline]
     fn diff_cost_eval<'a>(params: &[Var<'a>], data: &[f64]) -> Var<'a> {
-        let mut net = Self::gen_net(params, data);
-
-        params[0]
-    }
-
-    // Generates the network for backprop.
-    #[inline]
-    fn gen_net<'a>(params: &[Var<'a>], data: &[f64]) -> (Self, RunSettings, Vec::<f64>) {
         // obtain layer info...
         let nan_idx = data.iter().position(|x| x.is_nan()).unwrap();
         let layer_info = &data[0..nan_idx];
-        let data = data.to_vec();
+        let mut data = data.to_vec();
         data.remove(nan_idx);
 
         // training data... 
@@ -114,79 +106,32 @@ impl Network {
         let training_data = &data[0..nan_idx];
 
         // misc
-        let print = data.last().unwrap();
+        let misc = data.last().unwrap();
 
-        // start creating network
-        let mut net = Network::new();
+        // create the differential network
+        let mut net = DiffNetwork::new(params, layer_info);
 
-        // construct layers
-        net.add_layer(Layer::new_input().add_neurons(layer_info[0] as usize));
-        for l in (1..layer_info.len()).step_by(2) {
-            net.add_layer(Layer::new_comput()
-                .add_neurons(layer_info[l] as usize)
-                .add_activation_fn(ActivationFn::decode(layer_info[l + 1]))
-            );
+        // create settings
+        let mut input = Vec::default();
+        for i in 0..net.layers[0].num_neurons() {
+            input.push(training_data[i]);
         }
-
-        let mut net = net.build();
-
-        for w in 0..net.num_weights() {
-            net.weights[w].value = params[w];
-        }
-        for b in 0..net.neurons().len() {
-            net.neurons[b].bias = x[b + nan_idx + 1 + net.weights().len()];
-        }
-
-        let mut input = Vec::<FT<f64>>::default();
-        for i in 0..net.input_layer.len() {
-            input.push(x[i + nan_idx + 1 + net.weights().len() + net.neurons().len()]);
-        }
-        let mut desired_output = Vec::<FT<f64>>::default();
-        for o in 0..net.last_layer().num_neurons() {
-            desired_output.push(x[o + nan_idx + 1 + net.weights().len() + net.neurons().len() + net.input_layer.len()]);
+        let mut desired_output = Vec::default();
+        for o in 0..net.layers.last().unwrap().num_neurons() {
+            desired_output.push(training_data[o + net.layers[0].num_neurons()]);
         }
 
         let settings = RunSettings {
             input,
-            activation_fn: match x.last().unwrap().to_i32().unwrap().abs() {
-                1 => ActivationFn::Sigmoid,
-                2 => ActivationFn::Tanh,
-                3 => ActivationFn::ReLU,
-                4 => ActivationFn::GELU,
-                5 => ActivationFn::SiLU,
-                6 => ActivationFn::SmoothReLU,
-                _ => panic!("Invalid value"),
-            },
-            clamp: false,
-            print: match x.last().unwrap().to_i32().unwrap().signum() {
-                -1 => true,
-                1 => false,
-                _ => panic!(),
-            },
+            clamp: misc.abs() == 2.0,
+            print: misc.is_sign_negative(),
         };
 
-        (net, settings, desired_output)
-    }
+        net.diff_run(settings);
 
-    // Differentiable function for gradient descent.
-    #[inline]
-    fn run_diff(x: &[FT<f64>]) -> FT<f64> {
-        let nan_idx = x.iter().position(|x| x.is_nan()).unwrap();
+        let total_cost = net.total_cost(&desired_output);
 
-        // this function doesn't need to be run with respect to stuff like the number of neurons in each network
-        if let Some(y) = x.iter().position(|x| x.deriv() == 1.0) {
-            if y <= nan_idx {
-                return F::zero();
-            }
-        }
-
-        let (mut net , settings, desired_output) = Self::gen_net(x, nan_idx);
-
-        net.run(&settings);
-
-        let total_cost = net.total_cost(&desired_output).into();
-
-        if settings.print {
+        if misc.is_sign_negative() {
             println!("Total cost: {}", total_cost);
         }
 
@@ -195,7 +140,7 @@ impl Network {
 
     /// Computes total square error of `self`.
     #[inline]
-    pub fn total_cost(&self, desired_output: &Vec<f64>) -> f64{
+    pub fn total_cost(&self, desired_output: &Vec<f64>) -> f64 {
         let mut total_cost = 0.0;
         let output = self.output();
 
@@ -221,12 +166,113 @@ impl Network {
         let weights_len = self.weights().len();
         for w in 0..weights_len {
             self.weights[w].value -= eta * grad[w + 2 + layers_len];
-            if clamp { self.weights[w].value = self.weights[w].value.clamp(-F::one(), F::one()); }
+            if clamp { self.weights[w].value = self.weights[w].value.clamp(-1.0, 1.0); }
         }
         for b in 0..self.neurons.len() {
             self.neurons[b].bias -= eta * grad[b + weights_len + 2 + layers_len];
-            if clamp { self.neurons[b].bias = self.neurons[b].bias.clamp(-F::one(), F::one()); }
+            if clamp { self.neurons[b].bias = self.neurons[b].bias.clamp(-1.0, 1.0); }
         }
+    }
+}
+
+
+
+// here be dragons
+
+#[derive(Clone, Debug, Default)]
+pub(crate) struct DiffNetwork<'a> {
+    pub(crate) layers: Vec<Layer>,
+    pub(crate) neurons: Vec<DiffNeuron<'a>>,
+    pub(crate) weights: Vec<DiffWeight<'a>>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
+pub(crate) struct DiffNeuron<'a> {
+    pub(crate) activation: Var<'a>,
+    pub(crate) bias: Var<'a>,
+    pub(crate) num_weights: usize,
+    pub(crate) weight_start_idx: usize,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
+pub(crate) struct DiffWeight<'a> {
+    pub(crate) value: Var<'a>,
+}
+
+impl<'a> DiffNetwork<'a> {
+    /// Generates the differential network for backprop.
+    #[inline]
+    pub(crate) fn new(params: &[Var<'a>], layer_info: &[f64]) -> Self {
+        // start creating network
+        let mut net = DiffNetwork { layers: vec![], neurons: vec![], weights: vec![] };
+
+        // construct layers
+        net.layers.push(Layer { num_neurons: layer_info[0] as usize, ..Default::default() });
+        let mut num_neurons = 0;
+        for l in (1..layer_info.len()).step_by(2) {
+            net.layers.push(Layer { 
+                num_neurons: layer_info[l] as usize,
+                neuron_start_idx: num_neurons,
+                layer_type: LayerType::Comput,
+                activation_fn: ActivationFn::decode(layer_info[l + 1])
+            });
+
+            for n in 0..num_neurons {
+                net.neurons.push(DiffNeuron { activation: params[0], bias: params[b + num_weights], num_weights: , weight_start_idx: weights });
+            }
+
+            num_neurons += layer_info[l] as usize;
+        }
+
+        // count weights
+        let mut num_weights = layer_info[0] as usize * layer_info[1] as usize;
+        for l in (3..layer_info.len()).step_by(2) {
+            num_weights += layer_info[l - 2] as usize * layer_info[l] as usize
+        }
+
+        // add weights and neurons
+        for w in 0..num_weights {
+            net.weights.push(DiffWeight { value: params[w] });
+        }
+        let mut weights = 0;
+        for b in 0..num_neurons {
+            
+        }
+
+        net
+    }
+
+    /// Returns the output of `self`.
+    #[inline]
+    pub fn output(&self) -> Vec<Var<'a>> {
+        let mut vec = Vec::default();
+
+        for n in 0..self.layers.last().unwrap().num_neurons() {
+            vec.push(self.neurons[self.layers.last().unwrap().neuron_start_idx + n].activation)
+        }
+
+        vec
+    }
+
+    /// Computes total square error of `self`.
+    #[inline]
+    pub fn total_cost(&self, desired_output: &Vec<f64>) -> Var<'a> {
+        let output = self.output();
+        let mut total_cost = Self::cost(output[0], desired_output[0]);
+        
+        if output.len() != desired_output.len() { panic!("Output layer must have same len as desired output") }
+
+        for j in 1..output.len() {
+            total_cost = total_cost + Self::cost(output[j], desired_output[j]);
+        }
+
+        total_cost
+    }
+
+    /// Computes square error.
+    #[inline]
+    fn cost(output: Var<'a>, desired_output: f64) -> Var<'a> {
+        (output - desired_output).powf(2.0)
     }
 }
 

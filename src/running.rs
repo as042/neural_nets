@@ -1,4 +1,6 @@
-use crate::network::Network;
+use reverse::Var;
+
+use crate::{network::Network, prelude::DiffNetwork};
 
 #[derive(Clone, Debug, Default, PartialEq, PartialOrd)]
 pub struct RunSettings {
@@ -67,5 +69,48 @@ impl Network {
         if settings.print {
             println!("Output: {:?}", self.output());
         }
+    }
+}
+
+
+
+// here be dragons
+
+impl<'a> DiffNetwork<'a> {
+    pub(crate) fn diff_run(&mut self, settings: RunSettings) -> Vec<Var<'a>> {
+        let input = &settings.input;
+
+        // compute first layer
+        for n in 0..self.layers[1].num_neurons() {
+            let mut sum = self.neurons[n].bias;
+
+            for w in 0..input.len() {
+                sum = sum + self.weights[self.neurons[n].weight_start_idx + w].value * input[w];
+            }
+
+            self.neurons[n].activation = self.layers[1].activation_fn.diff_compute(sum);
+        }
+
+        // compute all other layers
+        for l in 2..self.layers.len() {
+            for n in 0..self.layers[l].num_neurons() {
+                let neuron_idx = self.layers[l].neuron_start_idx() + n;
+
+                let mut sum = self.neurons[neuron_idx].bias;
+
+                for w in 0..self.layers[l - 1].num_neurons() {
+                    sum = sum + self.weights[self.neurons[neuron_idx].weight_start_idx + w].value * 
+                        self.neurons[self.layers[l - 1].neuron_start_idx() + w].activation;
+                }
+
+                self.neurons[neuron_idx].activation = self.layers[l].activation_fn.diff_compute(sum);
+            }
+        }
+
+        if settings.print {
+            println!("Output: {:?}", self.output());
+        }
+
+        self.output()
     }
 }

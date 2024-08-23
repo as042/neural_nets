@@ -3,7 +3,8 @@ use std::f64::consts::E;
 
 use neural_nets::prelude::*;
 
-fn main() { let mut net = Network::new()
+fn main() { 
+    let mut net = Network::new()
         .add_layer(Layer::new_input().add_neurons(1))
         .add_layer(Layer::new_comput().add_neurons(1000).add_activation_fn(ActivationFn::Sigmoid))
         .add_layer(Layer::new_comput().add_neurons(3).add_activation_fn(ActivationFn::Sigmoid))
