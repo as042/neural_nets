@@ -6,6 +6,7 @@ pub mod layer;
 pub mod neuron;
 pub mod weight;
 pub mod network_builder;
+pub mod reverse;
 
 pub mod prelude {
     pub use crate::{network::*, running::*, training::*, network_builder::*, layer::*, activation_functions::*};

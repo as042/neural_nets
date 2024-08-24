@@ -1,3 +1,4 @@
+/// Indicates how sensitive a `Neuron` is to the activation of another `Neuron`.
 #[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd)]
 pub struct Weight {
     pub(crate) value: f64,

@@ -1,5 +1,6 @@
 use crate::prelude::{ActivationFn, LayerBuilder};
 
+/// The type of a `Layer`. The first `Layer` of every `Network` must be `Input`, and all other `Layer`s must be `Comput`.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum LayerType {
     #[default]
@@ -7,6 +8,7 @@ pub enum LayerType {
     Comput,
 }
 
+/// A group of `Neuron`s.
 #[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd)]
 pub struct Layer {
     pub(crate) num_neurons: usize,

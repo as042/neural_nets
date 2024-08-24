@@ -1,7 +1,7 @@
+use crate::reverse::*;
 use std::f64::consts::PI;
 
-use reverse::*;
-
+/// Represents the function that returns the activation of a `Neuron`.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum ActivationFn {
     #[default]
@@ -58,37 +58,37 @@ impl ActivationFn {
         }
     }
 
-    /// Computes the sigmoid "squishification" function of the given value.
+    /// Computes the sigmoid "squishification" function.
     #[inline]
     pub fn sigmoid(x: f64) -> f64 {
         1.0 / (1.0 + (-x).exp())
     }
 
-    /// Computes the rectified linear unit "ReLU" activation function of the given value.
+    /// Computes the rectified linear unit "ReLU" activation function.
     #[inline]
     pub fn relu(x: f64) -> f64 {
         (x + x.abs()) / 2.0
     }
 
-    /// Computes the Gaussian-error linear unit "GELU" activation function of the given value.
+    /// Computes the Gaussian-error linear unit "GELU" activation function.
     #[inline]
     pub fn gelu(x: f64) -> f64 {
         x * Self::cdf_nd(x)
     }
 
-    /// Computes the sigmoid linear unit "SiLU" or "swish" activation function of the given value.
+    /// Computes the sigmoid linear unit "SiLU" or "swish" activation function.
     #[inline]
     pub fn silu(x: f64) -> f64 {
         x * Self::sigmoid(x)
     }    
 
-    /// Computes the CDF of the standard normal distribution of the given value.
+    /// Computes the CDF of the standard normal distribution.
     #[inline]
     pub fn cdf_nd(x: f64) -> f64 {
         0.5 * (1.0 + Self::erf(x / 2.0f64.sqrt()))
     }
 
-    /// Computes the error function of the given value.
+    /// Computes the error function.
     #[inline]
     pub fn erf(x: f64) -> f64 {
         2.0 / PI.sqrt() *
@@ -106,19 +106,15 @@ impl ActivationFn {
         )
     }
 
-    /// Computes the SmoothReLU "Softplus" activation function of the given value.
+    /// Computes the SmoothReLU "Softplus" activation function.
     #[inline]
     pub fn smooth_relu(x: f64) -> f64 {
         (1.0f64 + x.exp()).ln()
     }    
 }
 
-
-
-// here be dragons
-
 impl<'a> ActivationFn {
-    /// Runs the activation function on the given sum.
+    /// Runs the differential activation function on the given sum.
     #[inline]
     pub(crate) fn diff_compute(&self, sum: Var<'a>) -> Var<'a> {
         match self {
@@ -132,37 +128,37 @@ impl<'a> ActivationFn {
         }
     }
 
-    /// Computes the sigmoid "squishification" function of the given value.
+    /// Computes the differential sigmoid "squishification" function.
     #[inline]
     pub(crate) fn diff_sigmoid(x: Var<'a>) -> Var<'a> {
         1.0 / (1.0 + (-x).exp())
     }
 
-    /// Computes the rectified linear unit "ReLU" activation function of the given value.
+    /// Computes the differential rectified linear unit "ReLU" activation function.
     #[inline]
     pub(crate) fn diff_relu(x: Var<'a>) -> Var<'a> {
         (x + x.abs()) / 2.0
     }
 
-    /// Computes the Gaussian-error linear unit "GELU" activation function of the given value.
+    /// Computes the differential Gaussian-error linear unit "GELU" activation function.
     #[inline]
     pub(crate) fn diff_gelu(x: Var<'a>) -> Var<'a> {
         x * Self::diff_cdf_nd(x)
     }
 
-    /// Computes the sigmoid linear unit "SiLU" or "swish" activation function of the given value.
+    /// Computes the differential sigmoid linear unit "SiLU" or "swish" activation function.
     #[inline]
     pub(crate) fn diff_silu(x: Var<'a>) -> Var<'a> {
         x * Self::diff_sigmoid(x)
     }    
 
-    /// Computes the CDF of the standard normal distribution of the given value.
+    /// Computes the differential CDF of the standard normal distribution.
     #[inline]
     pub(crate) fn diff_cdf_nd(x: Var<'a>) -> Var<'a> {
         0.5 * (1.0 + Self::diff_erf(x / 2.0f64.sqrt()))
     }
 
-    /// Computes the error function of the given value.
+    /// Computes the differential error function.
     #[inline]
     pub(crate) fn diff_erf(x: Var<'a>) -> Var<'a> {
         2.0 / PI.sqrt() *
@@ -180,7 +176,7 @@ impl<'a> ActivationFn {
         )
     }
 
-    /// Computes the SmoothReLU "Softplus" activation function of the given value.
+    /// Computes the differential SmoothReLU "Softplus" activation function.
     #[inline]
     pub(crate) fn diff_smooth_relu(x: Var<'a>) -> Var<'a> {
         (1.0f64 + x.exp()).ln()

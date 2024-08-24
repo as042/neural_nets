@@ -3,8 +3,40 @@ use rand_chacha::ChaCha8Rng;
 
 use crate::{layer::*, network_builder::NetworkBuilder, neuron::Neuron, weight::Weight};
 
-/// A network object. `layers` refers to non-input layers.
-#[derive(Clone, Debug, Default)]
+/// Used to create, run, and train neural networks.
+/// # Examples
+/// ```
+/// use neural_nets::prelude::*;
+/// 
+/// // create the network
+/// let mut net = Network::new()
+///     .add_layer(Layer::new_input().add_neurons(1))
+///     .add_layer(Layer::new_comput().add_neurons(3).add_activation_fn(ActivationFn::Sigmoid))
+///     .add_layer(Layer::new_comput().add_neurons(3).add_activation_fn(ActivationFn::GELU))
+///     .build();
+///
+/// // give it random parameters
+/// net.randomize_params(None);
+///
+/// // indicate the settings with which to run the network
+/// let settings = &RunSettings::new(
+///     vec![0.2], 
+///     true
+/// );
+/// let desired_output = vec![0.5, 0.7, 0.56];
+///
+/// // save the initial cost of the network to compare with the final cost
+/// net.run(settings);
+/// let init_cost = net.total_cost(&desired_output);
+///
+/// // train the network 1000 times and print the cost after each time
+/// for _ in 0..1000 {
+///     println!("cost: {:?}", net.train(settings, &vec![0.5, 0.7, 0.56], 0.1).cost());
+/// }    
+/// 
+/// println!("{init_cost}");
+/// ```
+#[derive(Clone, Debug, Default, PartialEq, PartialOrd)]
 pub struct Network {
     pub(crate) layers: Vec<Layer>,
     pub(crate) neurons: Vec<Neuron>,
@@ -12,80 +44,57 @@ pub struct Network {
 }
 
 impl Network {
-    /// Creates a builder helper.
+    /// Creates a builder to aid in construction of a `Network`.
     /// # Examples
     /// ```
     /// let mut net = Network::new()
-    ///     .add_layer(Layer::new().add_neurons(1))
-    ///     .add_layer(Layer::new().add_neurons(3))
-    ///     .add_layer(Layer::new().add_neurons(5))
-    ///     .add_layer(Layer::new().add_neurons(9))
-    ///     .add_layer(Layer::new().add_neurons(3))
+    ///     .add_layer(Layer::new_input().add_neurons(1))
+    ///     .add_layer(Layer::new_comput().add_neurons(3))
+    ///     .add_layer(Layer::new_comput().add_neurons(3))
     ///     .build();
-    ///
-    /// net.randomize_params(None);
-    ///
-    /// let settings = &RunSettings::new(
-    ///     vec![0.2], 
-    ///     ActivationFunction::Tanh,
-    ///     true
-    /// );
-    /// let desired_output = vec![0.5, 0.7, 0.56];
-    ///
-    /// net.run(settings);
-    /// let init_cost = net.total_cost(&desired_output.iter().map(|f| F::new(*f, 0.0)).collect());
-    ///
-    /// for _ in 0..1000 {
-    ///     println!("{:?}", net.train(settings, 
-    ///         &vec![0.5, 0.7, 0.56], 
-    ///         0.1).cost()
-    ///     );
-    /// }
-    ///
-    /// println!("{init_cost}");
     /// ```
     #[inline]
     pub fn new() -> NetworkBuilder {
         NetworkBuilder::new()
     }
 
-    /// Returns the input layer of `self`.
+    /// Returns the input `Layer`.
     #[inline]
     pub fn input_layer(&self) -> &Layer {
         &self.layers[0]
     }
 
-    /// Returns all layers of `self`.
+    /// Returns the `Layer`s.
     #[inline]
     pub fn layers(&self) -> &Vec<Layer> {
         &self.layers
     }
 
-    /// Returns the neurons of `self`.
+    /// Returns the `Neuron`s.
     #[inline]
     pub fn neurons(&self) -> &Vec<Neuron> {
         &self.neurons
     }
 
-    /// Returns the weights of `self`.
+    /// Returns the 'Weight's.
     #[inline]
     pub fn weights(&self) -> &Vec<Weight> {
         &self.weights
     }
 
-    /// Returns the number of layers of `self`.
+    /// Returns the number of `Layer`s.
     #[inline]
     pub fn num_layers(&self) -> usize {
         self.layers.len()
     }
 
-    /// Returns the number of neurons of `self`, not counting input.
+    /// Returns the number of `Neuron`s, not counting input.
     #[inline]
     pub fn num_neurons(&self) -> usize {
         self.neurons.len()
     }
 
-    /// Returns the number of weights of `self`.
+    /// Returns the number of `Weight`s.
     #[inline]
     pub fn num_weights(&self) -> usize {
         self.weights.len()
@@ -110,14 +119,14 @@ impl Network {
         &self.layers[idx - 1]
     }
 
-    /// Returns the next `Layer`. Panics if idx >= idx of last layer.
+    /// Returns the next `Layer`. Panics if idx >= idx of last `Layer`.
     #[inline]
     pub fn next_layer(&self, idx: usize) -> &Layer {
         assert!(idx < self.num_layers() - 1);
         &self.layers[idx + 1]
     }
 
-    /// Returns the last layer of `self`.
+    /// Returns the last `Layer`.
     #[inline]
     pub fn last_layer(&self) -> &Layer {
         self.layers.last().unwrap()
@@ -135,7 +144,7 @@ impl Network {
         &self.weights[idx]
     }
 
-    /// Returns the output of `self`.
+    /// Returns the output.
     #[inline]
     pub fn output(&self) -> Vec<f64> {
         let mut vec = Vec::default();
@@ -147,7 +156,20 @@ impl Network {
         vec
     }
 
-    /// Randomizes all weights and biases of `self`.
+    /// Randomizes all weights and biases.
+    /// # Examples
+    /// ```
+    /// // create the network
+    /// let mut net = Network::new()
+    ///     .add_layer(Layer::new_input().add_neurons(1))
+    ///     .add_layer(Layer::new_comput().add_neurons(1))
+    ///     .build();
+    ///
+    /// // give it random parameters
+    /// net.randomize_params(None);
+    /// 
+    /// // give it seeded random parameters 
+    /// net.randomize_params(Some(5334));
     #[inline]
     pub fn randomize_params(&mut self, seed: Option<u64>) {
         let mut rng;
@@ -167,7 +189,7 @@ impl Network {
         }
     }
 
-    /// Sets the weights and biases of a specific neuron.
+    /// Sets the weights and biases of a specific `Neuron`.
     #[inline]
     pub fn set_neuron_params(&mut self, neuron_idx: usize, bias: f64, weights: Vec<f64>) {
         let num_weights = self.nth_neuron(neuron_idx).num_weights();
@@ -182,38 +204,85 @@ impl Network {
     }
 }
 
-// #[test]
-// fn test_set_neuron_params() {
-//     let mut net = Network::new()
-//         .add_layer(Layer::new_input().add_neurons(1))
-//         .add_layer(Layer::new_comput().add_neurons(1))
-//         .build();
+#[test]
+fn test_set_neuron_params() {
+    let mut net = Network::new()
+        .add_layer(Layer::new_input().add_neurons(1))
+        .add_layer(Layer::new_comput().add_neurons(1))
+        .build();
 
-//     net.set_neuron_params(0, 0.1, vec![0.3]);
+    net.set_neuron_params(0, 0.1, vec![0.3]);
 
-//     assert_eq!(net, 
-//         Network { 
-//             layers: vec![Layer { num_neurons: 1, ..Default::default() }, Layer { num_neurons: 1, layer_type: LayerType::Comput, ..Default::default() }], 
-//             neurons: vec![Neuron { bias: 0.1, num_weights: 1, ..Default::default() }], 
-//             weights: vec![Weight { value: 0.3 }],
-//         }
-//     );
-// }
+    assert_eq!(net, 
+        Network { 
+            layers: vec![Layer { num_neurons: 1, ..Default::default() }, Layer { num_neurons: 1, layer_type: LayerType::Comput, ..Default::default() }], 
+            neurons: vec![Neuron { bias: 0.1, num_weights: 1, ..Default::default() }], 
+            weights: vec![Weight { value: 0.3 }],
+        }
+    );
+}
 
-// #[test]
-// fn test_randomize_params() {
-//     let mut net = Network::new()
-//         .add_layer(Layer::new_input().add_neurons(1))
-//         .add_layer(Layer::new_comput().add_neurons(1))
-//         .build();
+#[test]
+fn test_randomize_params() {
+    let mut net = Network::new()
+        .add_layer(Layer::new_input().add_neurons(1))
+        .add_layer(Layer::new_comput().add_neurons(1))
+        .build();
 
-//     net.randomize_params(Some(0));
+    net.randomize_params(Some(0));
 
-//     assert_eq!(net, 
-//         Network { 
-//             layers: vec![Layer { num_neurons: 1, ..Default::default() }, Layer { num_neurons: 1, layer_type: LayerType::Comput, ..Default::default() }], 
-//             neurons: vec![Neuron { bias: -0.1363131108415594, num_weights: 1, ..Default::default() }], 
-//             weights: vec![Weight { value: 0.8363016617062469 }],
-//         }
-//     );
-// } 
+    assert_eq!(net, 
+        Network { 
+            layers: vec![Layer { num_neurons: 1, ..Default::default() }, Layer { num_neurons: 1, layer_type: LayerType::Comput, ..Default::default() }], 
+            neurons: vec![Neuron { bias: -0.1363131108415594, num_weights: 1, ..Default::default() }], 
+            weights: vec![Weight { value: 0.8363016617062469 }],
+        }
+    );
+} 
+
+#[test]
+fn simple_network_test() {
+    use crate::prelude::*;
+
+    let mut net = Network::new()
+        .add_layer(Layer::new_input().add_neurons(3))
+        .add_layer(Layer::new_comput().add_neurons(3).add_activation_fn(ActivationFn::Sigmoid))
+        .add_layer(Layer::new_comput().add_neurons(2).add_activation_fn(ActivationFn::Sigmoid))
+        .build();
+
+    net.randomize_params(Some(1));
+
+    let settings = &RunSettings::new(
+        vec![0.21, 0.1, -0.39], 
+        false
+    );
+
+    for _ in 0..10000 {
+        net.train(settings, &vec![0.59, 0.7], 0.1);
+    }
+
+    assert_eq!(net.train(settings, &vec![0.59, 0.7], 0.1).cost(), 4.930380657631324e-32); // was 4.5606021083089745e-31 in an earlier build
+}
+
+#[test]
+fn identity_test() {
+    use crate::prelude::*;
+
+    let mut net = Network::new()
+        .add_layer(Layer::new_input().add_neurons(1))
+        .add_layers(3, Layer::new_comput().add_neurons(50).add_activation_fn(ActivationFn::Sigmoid))
+        .add_layer(Layer::new_comput().add_neurons(1).add_activation_fn(ActivationFn::Sigmoid))
+        .build();
+
+    net.randomize_params(Some(0));
+
+    let mut avg_cost = 0.0;
+
+    for i in 0..100 {
+        avg_cost += net.train(&RunSettings::new(vec![i as f64 / 100.0], true), &vec![i as f64 / 1000.0], 0.1).cost();
+    }
+
+    avg_cost /= 100.0;
+
+    assert_eq!(avg_cost, 0.10838939258042275);
+}

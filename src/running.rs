@@ -1,7 +1,8 @@
-use reverse::Var;
+use crate::reverse::*;
 
-use crate::{network::Network, prelude::DiffNetwork};
+use crate::prelude::*;
 
+/// Used to configure how a `Network` is run.
 #[derive(Clone, Debug, Default, PartialEq, PartialOrd)]
 pub struct RunSettings {
     pub(crate) input: Vec<f64>,
@@ -72,11 +73,9 @@ impl Network {
     }
 }
 
-
-
-// here be dragons
-
 impl<'a> DiffNetwork<'a> {
+    /// Runs `self` with the given input but is differential.
+    #[inline]
     pub(crate) fn diff_run(&mut self, settings: RunSettings) -> Vec<Var<'a>> {
         let input = &settings.input;
 
@@ -108,9 +107,29 @@ impl<'a> DiffNetwork<'a> {
         }
 
         if settings.print {
-            println!("Output: {:?}", self.output());
+            println!("Output: {:?}", self.output().iter().map(|x|x.val()).collect::<Vec<f64>>());
         }
 
         self.output()
     }
+}
+
+#[test]
+fn test_run() {
+    let mut net = Network::new()
+        .add_layer(Layer::new_input().add_neurons(2))
+        .add_layer(Layer::new_comput().add_neurons(2).add_activation_fn(ActivationFn::Sigmoid))
+        .add_layer(Layer::new_comput().add_neurons(2).add_activation_fn(ActivationFn::Sigmoid))
+        .build();
+
+    net.randomize_params(Some(0));
+
+    let settings = &RunSettings::new(
+        vec![-0.2, 0.1], 
+        false
+    );
+
+    net.run(settings);
+
+    assert_eq!(net.output(), vec![0.9384751282963776, 0.9156491958141794]);
 }
