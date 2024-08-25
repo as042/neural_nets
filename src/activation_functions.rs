@@ -46,14 +46,14 @@ impl ActivationFn {
     /// Decodes the float back into its respective activation fn.
     #[inline]
     pub(crate) fn decode(float: f64) -> Self {
-        match float {
-            1.0 => ActivationFn::None,
-            2.0 => ActivationFn::Sigmoid,
-            3.0 => ActivationFn::Tanh,
-            4.0 => ActivationFn::ReLU,
-            5.0 => ActivationFn::GELU,
-            6.0 => ActivationFn::SiLU,
-            7.0 => ActivationFn::SmoothReLU,
+        match float as i32 {
+            1 => ActivationFn::None,
+            2 => ActivationFn::Sigmoid,
+            3 => ActivationFn::Tanh,
+            4 => ActivationFn::ReLU,
+            5 => ActivationFn::GELU,
+            6 => ActivationFn::SiLU,
+            7 => ActivationFn::SmoothReLU,
             _ => panic!("Invalid value"),
         }
     }
