@@ -286,6 +286,15 @@ impl<'t, T: GradNum> Powf<T> for VarP<'t, T> {
     }
 }
 
+impl<'t, T: GradNum> Powf<VarP<'t, T>> for T {
+    type Output = VarP<'t, T>;
+
+    #[inline]
+    fn powf(self, rhs: VarP<'t, T>) -> Self::Output {
+        rhs.tape.unary_op(self.powf(rhs.val) * self.ln(), rhs.index, self.powf(rhs.val))
+    }
+}
+
 // logs
 pub trait Log<T> {
     type Output;
@@ -300,7 +309,7 @@ impl<'t, T: GradNum> Log<VarP<'t, T>> for VarP<'t, T> {
     fn log(self, rhs: Self) -> Self::Output {
         let rhs_ln: T = rhs.val.ln();
         self.tape.binary_op(
-            (self.val * rhs.val.ln()).recip(),
+            (self.val * rhs_ln).recip(),
             -self.val.ln() / (rhs.val * rhs_ln * rhs_ln),
             self.index, rhs.index, self.val.log(rhs.val))
     }
@@ -315,12 +324,13 @@ impl<'t, T: GradNum> Log<T> for VarP<'t, T> {
     }
 }
 
-impl<'t> Log<VarP<'t>> for f64 {
-    type Output = VarP<'t>;
+impl<'t, T: GradNum> Log<VarP<'t, T>> for T {
+    type Output = VarP<'t, T>;
 
     #[inline]
-    fn log(self, rhs: VarP<'t>) -> VarP<'t> {
-        rhs.tape.unary_op((self * rhs.val.ln()).recip(), rhs.index, self.log(rhs.val))
+    fn log(self, rhs: VarP<'t, T>) -> VarP<'t, T> {
+        let rhs_ln: T = rhs.val.ln();
+        rhs.tape.unary_op(-self.ln() / (rhs.val * rhs_ln * rhs_ln), rhs.index, self.log(rhs.val))
     }
 }
 
@@ -342,7 +352,8 @@ fn basic_test() {
     let x = tape.new_var(1.0);
     let y = tape.new_var(1.0);
 
-    let z = -2.0 * x + x * x * x * y + 2.0 * y;
+    // -2x + xxxy + 2y
+    let z = x * -2.0 + x * x * x * y + y * 2.0;
     let grad = z.backprop();
 
     println!("full grad: {:?}", grad.full());
@@ -432,11 +443,23 @@ fn complex_test() {
     let c = tape.new_var(5.58);
 
     // z = log_c^x((1 / a) / (1 / b) + 50) + y*sin(a + x) + 0.3b*tan^2(x + y + a + b + c) / log_2(c + b^y)
-    let z = ((a.recip() / b.recip() + 50.0).log(c)).powf(x) + y * (a + x).sin() + 0.3 * b * (x + y + a + b + c).tan().powf(2.0) / (c + b.powf(y)).log2();
-    println!("{}", z.val);
+    let z = ((a.recip() / b.recip() + 50.0).log(c)).powf(x) + y * (a + x).sin() + b * 0.3 * (x + y + a + b + c).tan().powf(2.0) / (c + b.powf(y)).log2();
     let grad = z.backprop();
 
     assert_eq!(grad.inputs().iter().map(|x| (x * 1E5).round() / 1E5).collect::<Vec<f64>>(), 
         [12.46499, -0.16416, 7.83974, 0.31315, -1.12997]);
     assert_eq!(grad.full().len(), 28);
+}
+
+#[test]
+fn f32_test() {
+    let tape = Tape::new();
+    let x = tape.new_var(2f32);
+    let y = tape.new_var(4f32);
+
+    // log_x(1.5) + 2^y
+    let z = Log::log(1.5, x) + Powf::powf(2.0, y);
+    let grad = z.backprop();
+
+    assert_eq!(grad.inputs().iter().map(|x| (x * 1E5).round() / 1E5).collect::<Vec<f32>>(), [-0.42196, 11.09036]);
 }
