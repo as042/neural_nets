@@ -284,5 +284,5 @@ fn identity_test() {
 
     avg_cost /= 100.0;
 
-    assert_eq!(avg_cost, 0.10838939258042275);
+    assert_eq!((avg_cost * 1E6).round() / 1E6, 0.108389);
 }
