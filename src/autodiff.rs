@@ -354,11 +354,24 @@ impl<'t> Log<VarP<'t>> for f64 {
 }
 
 #[test]
+fn one_input_test() {
+    let tape = Tape::new();
+    let x = tape.new_var(-100.0);
+
+    // z = xx + x
+    let z = x * x + x;
+    let grad = z.backprop();
+
+    assert_eq!(grad.inputs(), [-199.0]);
+}
+
+#[test]
 fn basic_test() {
     let tape = Tape::default();
     let x = tape.new_var(1.0);
     let y = tape.new_var(1.0);
 
+    // z = -2x + xxxy + 2y
     let z = -2.0 * x + x * x * x * y + 2.0 * y;
     let grad = z.backprop();
 
@@ -426,6 +439,20 @@ fn trig_test() {
 }
 
 #[test]
+fn three_input_test() {
+    let tape = Tape::new();
+    let x = tape.new_var(1.5);
+    let y = tape.new_var(3.0);
+    let a = tape.new_var(4.0);
+
+    // z = x^2 + ya + a 
+    let z = x.powf(2.0) + y * a + a;
+    let grad = z.backprop();
+
+    assert_eq!(grad.inputs(), [3.0, 4.0, 4.0]);
+}
+
+#[test]
 fn complex_test() {
     let tape = Tape::new();
     let x = tape.new_var(2.1);
@@ -436,7 +463,6 @@ fn complex_test() {
 
     // z = log_c^x((1 / a) / (1 / b) + 50) + y*sin(a + x) + 0.3b*tan^2(x + y + a + b + c) / log_2(c + b^y)
     let z = ((a.recip() / b.recip() + 50.0).log(c)).powf(x) + y * (a + x).sin() + 0.3 * b * (x + y + a + b + c).tan().powf(2.0) / (c + b.powf(y)).log2();
-    println!("{}", z.val);
     let grad = z.backprop();
 
     assert_eq!(grad.inputs().iter().map(|x| (x * 1E5).round() / 1E5).collect::<Vec<f64>>(), 
