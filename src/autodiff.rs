@@ -1,59 +1,64 @@
-use std::{cell::RefCell, f64::consts::E, ops::{Add, Div, Mul, Neg, Sub}};
+use std::{cell::RefCell, ops::{Add, Div, Mul, Neg, Sub, AddAssign}};
+use num_traits::real::Real;
+
+pub trait GradNum: Real + Default + AddAssign {}
+
+impl<T> GradNum for T where T: Real + Default + AddAssign {}
 
 #[derive(Clone, Debug)]
-pub struct Grad {
-    partials: Vec<f64>,
+pub struct Grad<T: GradNum> {
+    partials: Vec<T>,
     num_inputs: usize,
 }
 
-impl Grad {
+impl<T: GradNum> Grad<T> {
     #[inline]
-    pub fn wrt(&self, var: VarP) -> f64 {
+    pub fn wrt(&self, var: VarP<T>) -> T {
         self.partials[var.index]
     }
 
     #[inline]
-    pub fn full(&self) -> &Vec<f64> {
+    pub fn full(&self) -> &Vec<T> {
         &self.partials
     }
 
     #[inline]
-    pub fn inputs(&self) -> &[f64] {
+    pub fn inputs(&self) -> &[T] {
         &self.partials[0..self.num_inputs]
     }
 }
 
 #[derive(Clone, Copy)]
-struct Node {
-    partials: [f64; 2],
+struct Node<T: GradNum> {
+    partials: [T; 2],
     parents: [usize; 2],
 }
 
 #[derive(Clone, Default)]
-pub struct Tape {
-    nodes: RefCell<Vec<Node>>,
+pub struct Tape<T: GradNum> {
+    nodes: RefCell<Vec<Node<T>>>,
     num_inputs: RefCell<usize>,
 }
 
 #[derive(Clone, Copy)]
-pub struct VarP<'t> {
-    tape: &'t Tape,
+pub struct VarP<'t, T: GradNum> {
+    tape: &'t Tape<T>,
     index: usize,
-    val: f64,
+    val: T,
 }
 
-impl Tape {
+impl<T: GradNum> Tape<T> {
     #[inline]
     pub fn new() -> Self {
         Self::default()
     }
 
     #[inline]
-    pub fn new_var(&self, value: f64) -> VarP {
+    pub fn new_var(&self, value: T) -> VarP<T> {
         let len = self.nodes.borrow().len();
         self.nodes.borrow_mut().push(
             Node {
-                partials: [0.0, 0.0],
+                partials: [T::default(), T::default()],
                 // for a single (input) variable, we point the parents to itself
                 parents: [len, len],
             }
@@ -69,12 +74,12 @@ impl Tape {
     }
 
     #[inline]
-    pub fn unary_op(&self, partial: f64, index: usize, new_value: f64) -> VarP {
-        self.binary_op(partial, 0.0, index, index, new_value)
+    pub fn unary_op(&self, partial: T, index: usize, new_value: T) -> VarP<T> {
+        self.binary_op(partial, T::default(), index, index, new_value)
     }
 
     #[inline]
-    pub fn binary_op(&self, lhs_partial: f64, rhs_partial: f64, lhs_index: usize, rhs_index: usize, new_value: f64) -> VarP {
+    pub fn binary_op(&self, lhs_partial: T, rhs_partial: T, lhs_index: usize, rhs_index: usize, new_value: T) -> VarP<T> {
         let len = self.nodes.borrow().len();
         self.nodes.borrow_mut().push(
             Node {
@@ -92,132 +97,124 @@ impl Tape {
     }
 }
 
-impl<'t> VarP<'t> {
+impl<'t, T: GradNum> VarP<'t, T> {
     /// Perform back propagation
     #[inline]
-    pub fn backprop(&self) -> Grad {
+    pub fn backprop(&self) -> Grad<T> {
         // vector storing the gradients
         let tape_len = self.tape.nodes.borrow().len();
-        let mut grad = vec![0.0; tape_len];
-        grad[self.index] = 1.0;
+        let mut grad = vec![T::default(); tape_len];
+        grad[self.index] = T::one();
 
         for i in (0..tape_len).rev() {
             let node = self.tape.nodes.borrow()[i];
             // increment gradient contribution to the left parent
             let lhs_dep = node.parents[0];
             let lhs_partial = node.partials[0];
-            grad[lhs_dep] += lhs_partial * grad[i];
+            let grad_i = grad[i];
+            grad[lhs_dep] += lhs_partial * grad_i;
 
             // increment gradient contribution to the right parent
             // note that in cases of unary operations, because
             // partial was set to zero, it won't affect the computation
             let rhs_dep = node.parents[1];
             let rhs_partial = node.partials[1];
-            grad[rhs_dep] += rhs_partial * grad[i];
+            let grad_i = grad[i];
+            grad[rhs_dep] += rhs_partial * grad_i;
         }
 
         Grad { partials: grad, num_inputs: *self.tape.num_inputs.borrow() }
     }
 
     #[inline]
-    pub fn recip(self) -> VarP<'t> {
-        self.tape.unary_op(-self.val.powf(-2.0), self.index, self.val.recip())
+    pub fn recip(self) -> VarP<'t, T> {
+        self.tape.unary_op(-T::one() / (self.val * self.val), self.index, self.val.recip())
     }
 
     #[inline]
-    pub fn sin(self) -> VarP<'t> {
+    pub fn sin(self) -> VarP<'t, T> {
         self.tape.unary_op(self.val.cos(), self.index, self.val.sin())
     }
 
     #[inline]
-    pub fn cos(self) -> VarP<'t> {
+    pub fn cos(self) -> VarP<'t, T> {
         self.tape.unary_op(-self.val.sin(), self.index, self.val.cos())
     }
 
     #[inline]
-    pub fn tan(self) -> VarP<'t> {
-        self.tape.unary_op(self.val.cos().recip().powf(2.0), self.index, self.val.tan())
+    pub fn tan(self) -> VarP<'t, T> {
+        let cos_val = self.val.cos();
+        self.tape.unary_op(T::one() / (cos_val * cos_val), self.index, self.val.tan())
     }
 
     #[inline]
-    pub fn exp(self) -> VarP<'t> {
+    pub fn exp(self) -> VarP<'t, T> {
         self.tape.unary_op(self.val.exp(), self.index, self.val.exp())
     }
 
     #[inline]
-    pub fn ln(self) -> VarP<'t> {
-        self.log(E)
+    pub fn ln(self) -> VarP<'t, T> {
+        let e = T::exp(T::one());
+        self.log(e)
     }
 
     #[inline]
-    pub fn log2(self) -> VarP<'t> {
-        self.log(2.0)
+    pub fn log2(self) -> VarP<'t, T> {
+        let two = T::one() + T::one();
+        self.log(two)
     }
 
     #[inline]
-    pub fn log10(self) -> VarP<'t> {
-        self.log(10.0)
+    pub fn log10(self) -> VarP<'t, T> {
+        // I know this seems absolutely insane, but I believe it is the 
+        // way to do it with the fewest operations. ~MAR
+        let two = T::one() + T::one();
+        let eight = two * two * two;
+        let ten = eight + two;
+        self.log(ten)
     }
 }
 
 // addition
-impl<'t> Add for VarP<'t> {
+impl<'t, T: GradNum> Add for VarP<'t, T> {
     type Output = Self;
 
     #[inline]
-    fn add(self, rhs: VarP<'t>) -> Self::Output {
-        self.tape.binary_op(1.0, 1.0, self.index, rhs.index, self.val + rhs.val)
+    fn add(self, rhs: VarP<'t, T>) -> Self::Output {
+        self.tape.binary_op(T::one(), T::one(), self.index, rhs.index, self.val + rhs.val)
     }
 }
 
-impl<'t> Add<f64> for VarP<'t> {
+impl<'t, T: GradNum> Add<T> for VarP<'t, T> {
     type Output = Self;
 
     #[inline]
-    fn add(self, rhs: f64) -> Self::Output {
-        self.tape.unary_op(1.0, self.index, self.val + rhs)
-    }
-}
-
-impl<'t> Add<VarP<'t>> for f64 {
-    type Output = VarP<'t>;
-
-    #[inline]
-    fn add(self, rhs: VarP<'t>) -> VarP<'t> {
-        rhs + self
+    fn add(self, rhs: T) -> Self::Output {
+        self.tape.unary_op(T::one(), self.index, self.val + rhs)
     }
 }
 
 // subtraction
-impl<'t> Sub for VarP<'t> {
+impl<'t, T: GradNum> Sub for VarP<'t, T> {
     type Output = Self;
 
     #[inline]
-    fn sub(self, rhs: VarP<'t>) -> Self::Output {
-        self.tape.binary_op(1.0, -1.0, self.index, rhs.index, self.val - rhs.val)
+    fn sub(self, rhs: VarP<'t, T>) -> Self::Output {
+        self.tape.binary_op(T::one(), -T::one(), self.index, rhs.index, self.val - rhs.val)
     }
 }
 
-impl<'t> Sub<f64> for VarP<'t> {
+impl<'t, T: GradNum> Sub<T> for VarP<'t, T> {
     type Output = Self;
 
     #[inline]
-    fn sub(self, rhs: f64) -> Self::Output {
-        self.tape.unary_op(1.0, self.index, self.val - rhs)
-    }
-}
-
-impl<'t> Sub<VarP<'t>> for f64 {
-    type Output = VarP<'t>;
-
-    #[inline]
-    fn sub(self, rhs: VarP<'t>) -> VarP<'t> {
-        -rhs + self
+    fn sub(self, rhs: T) -> Self::Output {
+        self.tape.unary_op(T::one(), self.index, self.val - rhs)
     }
 }
 
 // multiplication
-impl<'t> Mul for VarP<'t> {
+impl<'t, T: GradNum> Mul for VarP<'t, T> {
     type Output = Self;
 
     #[inline]
@@ -226,59 +223,41 @@ impl<'t> Mul for VarP<'t> {
     }
 }
 
-impl<'t> Mul<f64> for VarP<'t> {
+impl<'t, T: GradNum> Mul<T> for VarP<'t, T> {
     type Output = Self;
 
     #[inline]
-    fn mul(self, rhs: f64) -> Self::Output {
+    fn mul(self, rhs: T) -> Self::Output {
         self.tape.unary_op(rhs, self.index, self.val * rhs)
     }
 }
 
-impl<'t> Mul<VarP<'t>> for f64 {
-    type Output = VarP<'t>;
-
-    #[inline]
-    fn mul(self, rhs: VarP<'t>) -> VarP<'t> {
-        rhs * self
-    }
-}
-
 // division
-impl<'t> Div for VarP<'t> {
+impl<'t, T: GradNum> Div for VarP<'t, T> {
     type Output = Self;
 
     #[inline]
     fn div(self, rhs: Self) -> Self::Output {
-        self.tape.binary_op(rhs.val.recip(), self.val * -rhs.val.powf(-2.0), self.index, rhs.index, self.val / rhs.val)
+        self.tape.binary_op(rhs.val.recip(), self.val * -T::one() / (rhs.val * rhs.val), self.index, rhs.index, self.val / rhs.val)
     }
 }
 
-impl<'t> Div<f64> for VarP<'t> {
+impl<'t, T: GradNum> Div<T> for VarP<'t, T> {
     type Output = Self;
 
     #[inline]
-    fn div(self, rhs: f64) -> Self::Output {
+    fn div(self, rhs: T) -> Self::Output {
         self.tape.unary_op(rhs.recip(), self.index, self.val / rhs)
     }
 }
 
-impl<'t> Div<VarP<'t>> for f64 {
-    type Output = VarP<'t>;
-
-    #[inline]
-    fn div(self, rhs: VarP<'t>) -> VarP<'t> {
-        rhs.tape.unary_op(self * -rhs.val.powf(-2.0), rhs.index, self / rhs.val)
-    }
-}
-
 // negation
-impl<'a> Neg for VarP<'a> {
+impl<'a, T: GradNum> Neg for VarP<'a, T> {
     type Output = Self;
 
     #[inline]
     fn neg(self) -> Self::Output {
-        self * -1.0
+        self * -T::one()
     }
 }
 
@@ -289,30 +268,21 @@ pub trait Powf<T> {
     fn powf(self, other: T) -> Self::Output;
 }
 
-impl<'t> Powf<VarP<'t>> for VarP<'t> {
+impl<'t, T: GradNum> Powf<VarP<'t, T>> for VarP<'t, T> {
     type Output = Self;
 
     #[inline]
     fn powf(self, rhs: Self) -> Self::Output {
-        self.tape.binary_op(rhs.val * self.val.powf(rhs.val - 1.0), self.val.powf(rhs.val) * self.val.ln(), self.index, rhs.index, self.val.powf(rhs.val))
+        self.tape.binary_op(rhs.val * self.val.powf(rhs.val - T::one()), self.val.powf(rhs.val) * self.val.ln(), self.index, rhs.index, self.val.powf(rhs.val))
     }
 }
 
-impl<'t> Powf<f64> for VarP<'t> {
+impl<'t, T: GradNum> Powf<T> for VarP<'t, T> {
     type Output = Self;
 
     #[inline]
-    fn powf(self, rhs: f64) -> Self::Output {
-        self.tape.unary_op(rhs * self.val.powf(rhs - 1.0), self.index, self.val.powf(rhs))
-    }
-}
-
-impl<'t> Powf<VarP<'t>> for f64 {
-    type Output = VarP<'t>;
-
-    #[inline]
-    fn powf(self, rhs: VarP<'t>) -> VarP<'t> {
-        rhs.tape.unary_op(self.powf(rhs.val) * self.ln(), rhs.index, self.powf(rhs.val))
+    fn powf(self, rhs: T) -> Self::Output {
+        self.tape.unary_op(rhs * self.val.powf(rhs - T::one()), self.index, self.val.powf(rhs))
     }
 }
 
@@ -323,23 +293,24 @@ pub trait Log<T> {
     fn log(self, other: T) -> Self::Output;
 }
 
-impl<'t> Log<VarP<'t>> for VarP<'t> {
+impl<'t, T: GradNum> Log<VarP<'t, T>> for VarP<'t, T> {
     type Output = Self;
 
     #[inline]
     fn log(self, rhs: Self) -> Self::Output {
+        let rhs_ln: T = rhs.val.ln();
         self.tape.binary_op(
             (self.val * rhs.val.ln()).recip(),
-            -self.val.ln() / (rhs.val * rhs.val.ln().powf(2.0)),
+            -self.val.ln() / (rhs.val * rhs_ln * rhs_ln),
             self.index, rhs.index, self.val.log(rhs.val))
     }
 }
 
-impl<'t> Log<f64> for VarP<'t> {
+impl<'t, T: GradNum> Log<T> for VarP<'t, T> {
     type Output = Self;
 
     #[inline]
-    fn log(self, rhs: f64) -> Self::Output {
+    fn log(self, rhs: T) -> Self::Output {
         self.tape.unary_op((self.val * rhs.ln()).recip(), self.index, self.val.log(rhs))
     }
 }
@@ -367,11 +338,10 @@ fn one_input_test() {
 
 #[test]
 fn basic_test() {
-    let tape = Tape::default();
+    let tape: Tape<f64> = Tape::default();
     let x = tape.new_var(1.0);
     let y = tape.new_var(1.0);
 
-    // z = -2x + xxxy + 2y
     let z = -2.0 * x + x * x * x * y + 2.0 * y;
     let grad = z.backprop();
 
@@ -390,7 +360,7 @@ fn basic_arith_test() {
     let y = tape.new_var(3.0);
 
     // z = -x + y(x - 0.5) + y/x - 2x/(5y - 1) - 3y + 7
-    let z = -x + (x - 0.5) * y + y / x - 2.0 * x / (5.0 * y - 1.0) - 3.0 * y + 7.0;
+    let z = -x + (x - 0.5) * y + y / x - x * 2.0 / (y * 5.0 - 1.0) - y * 3.0 + 7.0;
     let grad = z.backprop();
 
     println!("full grad: {:?}", grad.full());
@@ -405,7 +375,7 @@ fn powf_test() {
     let y = tape.new_var(2.0);
 
     // z = x^y - y^x + (2x)^-y
-    let z = x.powf(y) - y.powf(x) + (2.0 * x).powf(-y);
+    let z = x.powf(y) - y.powf(x) + (x * 2.0).powf(-y);
     let grad = z.backprop();
 
     // grad wrt y is nan
@@ -432,7 +402,7 @@ fn trig_test() {
     let y = tape.new_var(2.712);
 
     // z = sin(2xy)*sin(cos(y))*tan(y) + 1/tan(x)
-    let z = (2.0 * x * y).sin() * y.cos().sin() * y.tan() + x.tan().recip();
+    let z = (x * y * 2.0).sin() * y.cos().sin() * y.tan() + x.tan().recip();
     let grad = z.backprop();
 
     assert_eq!(grad.inputs().iter().map(|x| (x * 1E3).round() / 1E3).collect::<Vec<f64>>(), [-2847070.909, 0.269]);
@@ -463,6 +433,7 @@ fn complex_test() {
 
     // z = log_c^x((1 / a) / (1 / b) + 50) + y*sin(a + x) + 0.3b*tan^2(x + y + a + b + c) / log_2(c + b^y)
     let z = ((a.recip() / b.recip() + 50.0).log(c)).powf(x) + y * (a + x).sin() + 0.3 * b * (x + y + a + b + c).tan().powf(2.0) / (c + b.powf(y)).log2();
+    println!("{}", z.val);
     let grad = z.backprop();
 
     assert_eq!(grad.inputs().iter().map(|x| (x * 1E5).round() / 1E5).collect::<Vec<f64>>(), 
