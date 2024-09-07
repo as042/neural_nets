@@ -1,9 +1,9 @@
-use std::{cell::RefCell, ops::{Add, Div, Mul, Neg, Sub, AddAssign}};
+use std::{cell::RefCell, ops::{Add, Div, Mul, Neg, Sub}};
 use num_traits::real::Real;
 
-pub trait GradNum: Real + Default + AddAssign {}
+pub trait GradNum: Real + Default {}
 
-impl<T> GradNum for T where T: Real + Default + AddAssign {}
+impl<T> GradNum for T where T: Real + Default {}
 
 #[derive(Clone, Debug)]
 pub struct Grad<T: GradNum> {
@@ -112,7 +112,7 @@ impl<'t, T: GradNum> VarP<'t, T> {
             let lhs_dep = node.parents[0];
             let lhs_partial = node.partials[0];
             let grad_i = grad[i];
-            grad[lhs_dep] += lhs_partial * grad_i;
+            grad[lhs_dep] = grad[lhs_dep] + lhs_partial * grad_i;
 
             // increment gradient contribution to the right parent
             // note that in cases of unary operations, because
@@ -120,7 +120,7 @@ impl<'t, T: GradNum> VarP<'t, T> {
             let rhs_dep = node.parents[1];
             let rhs_partial = node.partials[1];
             let grad_i = grad[i];
-            grad[rhs_dep] += rhs_partial * grad_i;
+            grad[rhs_dep] = grad[rhs_dep] + rhs_partial * grad_i;
         }
 
         Grad { partials: grad, num_inputs: *self.tape.num_inputs.borrow() }
