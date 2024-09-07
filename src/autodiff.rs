@@ -1,9 +1,9 @@
 use std::{cell::RefCell, ops::{Add, Div, Mul, Neg, Sub}};
 use num_traits::real::Real;
 
-pub trait GradNum: Real + Default {}
+pub trait GradNum: Real {}
 
-impl<T> GradNum for T where T: Real + Default {}
+impl<T> GradNum for T where T: Real {}
 
 #[derive(Clone, Debug)]
 pub struct Grad<T: GradNum> {
@@ -34,10 +34,19 @@ struct Node<T: GradNum> {
     parents: [usize; 2],
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct Tape<T: GradNum> {
     nodes: RefCell<Vec<Node<T>>>,
     num_inputs: RefCell<usize>,
+}
+
+impl<T: GradNum> Default for Tape<T> {
+    fn default() -> Self {
+        Tape {
+            nodes: vec![].into(),
+            num_inputs: 0.into(),
+        }
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -58,7 +67,7 @@ impl<T: GradNum> Tape<T> {
         let len = self.nodes.borrow().len();
         self.nodes.borrow_mut().push(
             Node {
-                partials: [T::default(), T::default()],
+                partials: [T::zero(), T::zero()],
                 // for a single (input) variable, we point the parents to itself
                 parents: [len, len],
             }
@@ -75,7 +84,7 @@ impl<T: GradNum> Tape<T> {
 
     #[inline]
     pub fn unary_op(&self, partial: T, index: usize, new_value: T) -> VarP<T> {
-        self.binary_op(partial, T::default(), index, index, new_value)
+        self.binary_op(partial, T::zero(), index, index, new_value)
     }
 
     #[inline]
@@ -103,7 +112,7 @@ impl<'t, T: GradNum> VarP<'t, T> {
     pub fn backprop(&self) -> Grad<T> {
         // vector storing the gradients
         let tape_len = self.tape.nodes.borrow().len();
-        let mut grad = vec![T::default(); tape_len];
+        let mut grad = vec![T::zero(); tape_len];
         grad[self.index] = T::one();
 
         for i in (0..tape_len).rev() {
