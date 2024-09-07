@@ -1,7 +1,7 @@
 use rand::{thread_rng, Rng, SeedableRng};
 use rand_chacha::ChaCha8Rng;
 
-use crate::{layer::*, network_builder::NetworkBuilder, neuron::Neuron, weight::Weight};
+use crate::{layer::*, network_builder::NetworkBuilder, neuron::Neuron, prelude::GradNum, weight::Weight};
 
 /// Used to create, run, and train neural networks.
 /// # Examples
@@ -37,13 +37,13 @@ use crate::{layer::*, network_builder::NetworkBuilder, neuron::Neuron, weight::W
 /// println!("{init_cost}");
 /// ```
 #[derive(Clone, Debug, Default, PartialEq, PartialOrd)]
-pub struct Network {
+pub struct Network<T: GradNum> {
     pub(crate) layers: Vec<Layer>,
-    pub(crate) neurons: Vec<Neuron>,
-    pub(crate) weights: Vec<Weight>,
+    pub(crate) neurons: Vec<Neuron<T>>,
+    pub(crate) weights: Vec<Weight<T>>,
 }
 
-impl Network {
+impl<T: GradNum> Network<T> {
     /// Creates a builder to aid in construction of a `Network`.
     /// # Examples
     /// ```
@@ -72,13 +72,13 @@ impl Network {
 
     /// Returns the `Neuron`s.
     #[inline]
-    pub fn neurons(&self) -> &Vec<Neuron> {
+    pub fn neurons(&self) -> &Vec<Neuron<T>> {
         &self.neurons
     }
 
     /// Returns the 'Weight's.
     #[inline]
-    pub fn weights(&self) -> &Vec<Weight> {
+    pub fn weights(&self) -> &Vec<Weight<T>> {
         &self.weights
     }
 
@@ -134,13 +134,13 @@ impl Network {
 
     /// Returns the nth `Neuron`.
     #[inline]
-    pub fn nth_neuron(&self, idx: usize) -> &Neuron {
+    pub fn nth_neuron(&self, idx: usize) -> &Neuron<T> {
         &self.neurons[idx]
     }
 
     /// Returns the nth `Weight`.
     #[inline]
-    pub fn nth_weight(&self, idx: usize) -> &Weight {
+    pub fn nth_weight(&self, idx: usize) -> &Weight<T> {
         &self.weights[idx]
     }
 
@@ -191,7 +191,7 @@ impl Network {
 
     /// Sets the weights and biases of a specific `Neuron`.
     #[inline]
-    pub fn set_neuron_params(&mut self, neuron_idx: usize, bias: f64, weights: Vec<f64>) {
+    pub fn set_neuron_params(&mut self, neuron_idx: usize, bias: T, weights: Vec<T>) {
         let num_weights = self.nth_neuron(neuron_idx).num_weights();
         let weight_start_idx = self.nth_neuron(neuron_idx).weight_start_idx();
         assert_eq!(weights.len(), num_weights);

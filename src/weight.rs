@@ -1,13 +1,15 @@
+use crate::prelude::GradNum;
+
 /// Indicates how sensitive a `Neuron` is to the activation of another `Neuron`.
 #[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd)]
-pub struct Weight {
-    pub(crate) value: f64,
+pub struct Weight<T: GradNum> {
+    pub(crate) value: T,
 }
 
-impl Weight {
+impl<T: GradNum> Weight<T> {
     /// Creates a new `Weight`.
     #[inline]
-    pub fn new(value: f64) -> Self {
+    pub fn new(value: T) -> Self {
         Weight {
             value
         }
@@ -15,7 +17,7 @@ impl Weight {
 
     /// Returns the value of `self`.
     #[inline]
-    pub fn value(&self) -> f64{
+    pub fn value(&self) -> T{
         self.value
     }
 }

@@ -1,3 +1,4 @@
+use crate::prelude::{GradNum, Tape, Var};
 use crate::reverse::*;
 
 use crate::{layer::*, network::Network, prelude::ActivationFn, running::RunSettings};
@@ -30,7 +31,7 @@ impl TrainingResults {
     }
 }
 
-impl Network {    
+impl<T: GradNum> Network<T> {    
     /// Runs `self` with the given input and adjusts params to minimize cost.
     #[inline]
     pub fn train(&mut self, settings: &RunSettings, desired_output: &Vec<f64>, eta: f64) -> TrainingResults {
@@ -108,7 +109,7 @@ impl Network {
 
     /// Finds the cost of a network and is differential.
     #[inline]
-    fn diff_cost_eval<'a>(params: &[Var<'a>], data: &[f64]) -> Var<'a> {
+    fn diff_cost_eval<'a>(params: &[Var<'a, T>], data: &[f64]) -> Var<'a, T> {
         // obtain layer info...
         let nan_idx = data.iter().position(|x| x.is_nan()).unwrap();
         let layer_info = &data[0..nan_idx];

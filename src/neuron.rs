@@ -1,13 +1,15 @@
+use crate::prelude::GradNum;
+
 /// Has an activation that feeds into other `Neuron`s in the `Network`.
 #[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd)]
-pub struct Neuron {
-    pub(crate) activation: f64,
-    pub(crate) bias: f64,
+pub struct Neuron<T: GradNum> {
+    pub(crate) activation: T,
+    pub(crate) bias: T,
     pub(crate) num_weights: usize,
     pub(crate) weight_start_idx: usize,
 }
 
-impl Neuron {
+impl<T: GradNum> Neuron<T> {
     /// Creates a new `Neuron`.
     #[inline]
     pub fn new() -> Self {
@@ -19,13 +21,13 @@ impl Neuron {
 
     /// Returns the activation.
     #[inline]
-    pub fn activation(&self) -> f64 {
+    pub fn activation(&self) -> T {
         self.activation
     }
 
     /// Returns the bias.
     #[inline]
-    pub fn bias(&self) -> f64 {
+    pub fn bias(&self) -> T {
         self.bias
     }
 
