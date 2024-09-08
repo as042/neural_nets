@@ -1,9 +1,9 @@
-use std::{cell::RefCell, ops::{Add, Div, Mul, Neg, Sub, AddAssign}};
+use std::{cell::RefCell, ops::{Add, Div, Mul, Neg, Sub}};
 use num_traits::real::Real;
 
-pub trait GradNum: Real + Default + AddAssign {}
+pub trait GradNum: Real {}
 
-impl<T> GradNum for T where T: Real + Default + AddAssign {}
+impl<T> GradNum for T where T: Real {}
 
 #[derive(Clone, Debug)]
 pub struct Grad<T: GradNum> {
@@ -34,10 +34,19 @@ struct Node<T: GradNum> {
     parents: [usize; 2],
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct Tape<T: GradNum> {
     nodes: RefCell<Vec<Node<T>>>,
     num_inputs: RefCell<usize>,
+}
+
+impl<T: GradNum> Default for Tape<T> {
+    fn default() -> Self {
+        Tape {
+            nodes: vec![].into(),
+            num_inputs: 0.into(),
+        }
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -58,7 +67,7 @@ impl<T: GradNum> Tape<T> {
         let len = self.nodes.borrow().len();
         self.nodes.borrow_mut().push(
             Node {
-                partials: [T::default(), T::default()],
+                partials: [T::zero(), T::zero()],
                 // for a single (input) variable, we point the parents to itself
                 parents: [len, len],
             }
@@ -74,8 +83,8 @@ impl<T: GradNum> Tape<T> {
     }
 
     #[inline]
-    pub fn unary_op(&self, partial: T, index: usize, new_value: T) -> Var<T> {
-        self.binary_op(partial, T::default(), index, index, new_value)
+    pub fn unary_op(&self, partial: T, index: usize, new_value: T) -> VarP<T> {
+        self.binary_op(partial, T::zero(), index, index, new_value)
     }
 
     #[inline]
@@ -103,7 +112,7 @@ impl<'t, T: GradNum> Var<'t, T> {
     pub fn backprop(&self) -> Grad<T> {
         // vector storing the gradients
         let tape_len = self.tape.nodes.borrow().len();
-        let mut grad = vec![T::default(); tape_len];
+        let mut grad = vec![T::zero(); tape_len];
         grad[self.index] = T::one();
 
         for i in (0..tape_len).rev() {
@@ -112,7 +121,7 @@ impl<'t, T: GradNum> Var<'t, T> {
             let lhs_dep = node.parents[0];
             let lhs_partial = node.partials[0];
             let grad_i = grad[i];
-            grad[lhs_dep] += lhs_partial * grad_i;
+            grad[lhs_dep] = grad[lhs_dep] + lhs_partial * grad_i;
 
             // increment gradient contribution to the right parent
             // note that in cases of unary operations, because
@@ -120,7 +129,7 @@ impl<'t, T: GradNum> Var<'t, T> {
             let rhs_dep = node.parents[1];
             let rhs_partial = node.partials[1];
             let grad_i = grad[i];
-            grad[rhs_dep] += rhs_partial * grad_i;
+            grad[rhs_dep] = grad[rhs_dep] + rhs_partial * grad_i;
         }
 
         Grad { partials: grad, num_inputs: *self.tape.num_inputs.borrow() }
