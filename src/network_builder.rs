@@ -1,4 +1,4 @@
-use crate::{layer::LayerType, neuron::Neuron, prelude::{ActivationFn, Layer, Network}, weight::Weight};
+use crate::{layer::LayerType, neuron::Neuron, prelude::{ActivationFn, GradNum, Layer, Network}, weight::Weight};
 
 /// Assists in the construction of a `Network`.
 #[derive(Clone, Debug, Default, PartialEq, PartialOrd)]
@@ -39,7 +39,7 @@ impl NetworkBuilder {
 
     /// Builds the final `Network`.
     #[inline]
-    pub fn build(&self) -> Network {
+    pub fn build<T: GradNum>(&self) -> Network<T> {
         assert!(self.layer_builders.len() > 1); // there must be at least 2 layers
         assert_eq!(self.layer_builders[0].layer_type, LayerType::Input); // the first layer must be input
         assert_eq!(self.layer_builders[1..].iter().find(|x| x.layer_type == LayerType::Input), None); // no other lays can be input

@@ -1,9 +1,9 @@
 use std::{cell::RefCell, ops::{Add, Div, Mul, Neg, Sub}};
 use num_traits::real::Real;
 
-pub trait GradNum: Real {}
+pub trait GradNum: Real + Default {}
 
-impl<T> GradNum for T where T: Real {}
+impl<T> GradNum for T where T: Real + Default {}
 
 #[derive(Clone, Debug)]
 pub struct Grad<T: GradNum> {
@@ -83,7 +83,17 @@ impl<T: GradNum> Tape<T> {
     }
 
     #[inline]
-    pub fn unary_op(&self, partial: T, index: usize, new_value: T) -> VarP<T> {
+    pub fn new_vars(&self, values: &Vec<T>) -> Vec<Var<T>> {
+        let mut vec = Vec::default();
+        for v in values {
+            vec.push(self.new_var(*v));
+        }
+
+        vec
+    }
+
+    #[inline]
+    pub fn unary_op(&self, partial: T, index: usize, new_value: T) -> Var<T> {
         self.binary_op(partial, T::zero(), index, index, new_value)
     }
 

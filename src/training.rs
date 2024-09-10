@@ -1,32 +1,31 @@
-use crate::prelude::{GradNum, Tape, Var};
-use crate::reverse::*;
+use crate::prelude::{GradNum, Powf, Tape, Var};
 
 use crate::{layer::*, network::Network, prelude::ActivationFn, running::RunSettings};
 
 /// The data returned after training a `Network`.
 #[derive(Clone, Debug, Default, PartialEq, PartialOrd)]
-pub struct TrainingResults {
-    grad: Vec<f64>,
-    output: Vec<f64>,
-    cost: f64,
+pub struct TrainingResults<T: GradNum> {
+    grad: Vec<T>,
+    output: Vec<T>,
+    cost: T,
 }
 
-impl TrainingResults {
+impl<T: GradNum> TrainingResults<T> {
     /// Returns the grad of the training data.
     #[inline]
-    pub fn grad(&self) -> &Vec<f64> {
+    pub fn grad(&self) -> &Vec<T> {
         &self.grad
     }
 
     /// Returns the output of the training data.
     #[inline]
-    pub fn output(&self) -> &Vec<f64> {
+    pub fn output(&self) -> &Vec<T> {
         &self.output
     }
 
     /// Returns the cost of the training data.
     #[inline]
-    pub fn cost(&self) -> f64 {
+    pub fn cost(&self) -> T {
         self.cost
     }
 }
@@ -34,16 +33,17 @@ impl TrainingResults {
 impl<T: GradNum> Network<T> {    
     /// Runs `self` with the given input and adjusts params to minimize cost.
     #[inline]
-    pub fn train(&mut self, settings: &RunSettings, desired_output: &Vec<f64>, eta: f64) -> TrainingResults {
+    pub fn train(&mut self, settings: &RunSettings, desired_output: &Vec<T>, eta: T) -> TrainingResults<T> {
         self.run(settings);
 
-        let param_vec = self.create_param_vec();
-        let data = self.create_data_vec(settings, desired_output);
+        let param_vec = self.params();
 
         let tape = Tape::new();
-        let params = tape.add_vars(&param_vec);
+        let params = tape.new_vars(&param_vec);
 
-        let result = Self::diff_cost_eval(&params, &data);
+        
+
+        // let result = 
         let full_gradient = result.grad();
         let grad = full_gradient.wrt(&params);
 
@@ -56,166 +56,48 @@ impl<T: GradNum> Network<T> {
         }
     }
 
-    /// Creates the param vector that will be passed to the autodiff.
-    #[inline]
-    fn create_param_vec(&self) -> Vec<f64> {
-        // this list transfers all parameters to the cost evaluator
-        let mut params = Vec::<f64>::default();
-
-        // add all actual nn params
-        for w in self.weights() {
-            params.push(w.value());
-        }
-        for n in self.neurons() {
-            params.push(n.bias());
-        }
-
-        params
-    }
-
-    /// Creates the param vector that will be passed to the autodiff.
-    #[inline]
-    fn create_data_vec(&self, settings: &RunSettings, desired_output: &Vec<f64>) -> Vec<f64> {
-        let input = &settings.input;
-        
-        // this list transfers all necessary paramters to the run function
-        let mut data = Vec::<f64>::default();
-
-        // add layer information
-        for l in 0..self.num_layers() {
-            data.push(self.nth_layer(l).num_neurons() as f64);
-            data.push(self.nth_layer(l).activation_fn().encode() as f64 );
-        }
-        
-        // a useless identifer to indicate where the layer info ends
-        data.push(f64::NAN);
-
-        // add the training data
-        for i in input {
-            data.push(i.clone());
-        }
-        for o in desired_output {
-            data.push(o.clone());
-        }
-
-        // a useless identifer to indicate where the training data ends
-        data.push(f64::NAN);
-
-        // add necessary settings
-        data.push(if settings.print { -1.0 } else { 1.0 } * if settings.clamp { 2.0 } else { 1.0 });
-
-        data
-    }
-
-    /// Finds the cost of a network and is differential.
-    #[inline]
-    fn diff_cost_eval<'a>(params: &[Var<'a, T>], data: &[f64]) -> Var<'a, T> {
-        // obtain layer info...
-        let nan_idx = data.iter().position(|x| x.is_nan()).unwrap();
-        let layer_info = &data[0..nan_idx];
-        let mut data = data.to_vec();
-        data.remove(nan_idx);
-
-        // training data... 
-        let nan_idx2 = data.iter().position(|x| x.is_nan()).unwrap();
-        let training_data = &data[nan_idx..nan_idx2];
-
-        // misc
-        let misc = data.last().unwrap();
-
-        // create the differential network
-        let mut net = DiffNetwork::new(params, layer_info);
-
-        // create settings
-        let mut input = Vec::default();
-        for i in 0..net.layers[0].num_neurons() {
-            input.push(training_data[i]);
-        }
-        let mut desired_output = Vec::default();
-        for o in 0..net.layers.last().unwrap().num_neurons() {
-            desired_output.push(training_data[o + net.layers[0].num_neurons()]);
-        }
-
-        let settings = RunSettings {
-            input,
-            clamp: misc.abs() == 2.0,
-            print: misc.is_sign_negative(),
-        };
-
-        net.diff_run(settings);
-
-        let total_cost = net.total_cost(&desired_output);
-
-        if misc.is_sign_negative() {
-            println!("Total cost: {}", total_cost.val());
-        }
-
-        total_cost
-    }
-
-    /// Computes total square error of `self`.
-    #[inline]
-    pub fn total_cost(&self, desired_output: &Vec<f64>) -> f64 {
-        let mut total_cost = 0.0;
-        let output = self.output();
-
-        if output.len() != desired_output.len() { panic!("Output layer must have same len as desired output") }
-
-        for j in 0..output.len() {
-            total_cost += Self::cost(output[j], desired_output[j]);
-        }
-
-        total_cost
-    }
-
-    /// Computes square error.
-    #[inline]
-    fn cost(output: f64, desired_output: f64) -> f64 {
-        (output - desired_output).powf(2.0)
-    }
-
     // Adjusts weights and biases according to grad.
     #[inline]
-    fn adjust_params(&mut self, grad: &Vec<f64>, eta: f64, clamp: bool) {
+    fn adjust_params(&mut self, grad: &Vec<T>, eta: T, clamp: bool) {
         let weights_len = self.weights().len();
         for w in 0..weights_len {
-            self.weights[w].value -= eta * grad[w];
-            if clamp { self.weights[w].value = self.weights[w].value.clamp(-1.0, 1.0); }
+            self.weights[w].value = self.weights[w].value - eta * grad[w];
+            // if clamp { self.weights[w].value = self.weights[w].value.clamp(-1.0, 1.0); }
         }
         for b in 0..self.neurons.len() {
-            self.neurons[b].bias -= eta * grad[b + weights_len];
-            if clamp { self.neurons[b].bias = self.neurons[b].bias.clamp(-1.0, 1.0); }
+            self.neurons[b].bias = self.neurons[b].bias - eta * grad[b + weights_len];
+            // if clamp { self.neurons[b].bias = self.neurons[b].bias.clamp(-1.0, 1.0); }
         }
     }
 }
 
 /// Like a normal `Network` but differential.
-#[derive(Clone, Debug, Default)]
-pub(crate) struct DiffNetwork<'a> {
+#[derive(Clone)]
+pub(crate) struct DiffNetwork<'a, T: GradNum> {
     pub(crate) layers: Vec<Layer>,
-    pub(crate) neurons: Vec<DiffNeuron<'a>>,
-    pub(crate) weights: Vec<DiffWeight<'a>>,
+    pub(crate) neurons: Vec<DiffNeuron<'a, T>>,
+    pub(crate) weights: Vec<DiffWeight<'a, T>>,
 }
 
 /// Like a normal `Neuron` but differential.
-#[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
-pub(crate) struct DiffNeuron<'a> {
-    pub(crate) activation: Var<'a>,
-    pub(crate) bias: Var<'a>,
+#[derive(Clone, Copy)]
+pub(crate) struct DiffNeuron<'a, T: GradNum> {
+    pub(crate) activation: Var<'a, T>,
+    pub(crate) bias: Var<'a, T>,
     pub(crate) num_weights: usize,
     pub(crate) weight_start_idx: usize,
 }
 
 /// Like a normal `Weight` but differential.
-#[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
-pub(crate) struct DiffWeight<'a> {
-    pub(crate) value: Var<'a>,
+#[derive(Clone, Copy)]
+pub(crate) struct DiffWeight<'a, T: GradNum> {
+    pub(crate) value: Var<'a, T>,
 }
 
-impl<'a> DiffNetwork<'a> {
+impl<'a, T: GradNum> DiffNetwork<'a, T> {
     /// Generates the differential network for backprop.
     #[inline]
-    pub(crate) fn new(params: &[Var<'a>], layer_info: &[f64]) -> Self {
+    pub(crate) fn new(params: &[Var<'a, T>], layer_info: &[f64]) -> Self {
         // start creating network
         let mut net = DiffNetwork { layers: vec![], neurons: vec![], weights: vec![] };
 
@@ -233,7 +115,7 @@ impl<'a> DiffNetwork<'a> {
             let weights_per_neuron = layer_info[l - 2] as usize;
             for _ in 0..neurons_in_layer {
                 net.neurons.push(DiffNeuron { 
-                    activation: params[0] * 0.0, 
+                    activation: params[0] * T::zero(), 
                     bias: params[0], 
                     num_weights: weights_per_neuron, 
                     weight_start_idx: num_weights}
@@ -257,7 +139,7 @@ impl<'a> DiffNetwork<'a> {
 
     /// Returns the output of `self` but differential.
     #[inline]
-    pub fn output(&self) -> Vec<Var<'a>> {
+    pub fn output(&self) -> Vec<Var<'a, T>> {
         let mut vec = Vec::default();
 
         for n in 0..self.layers.last().unwrap().num_neurons() {
@@ -269,7 +151,7 @@ impl<'a> DiffNetwork<'a> {
 
     /// Computes total square error of `self` but differential.
     #[inline]
-    pub fn total_cost(&self, desired_output: &Vec<f64>) -> Var<'a> {
+    pub fn total_cost(&self, desired_output: &Vec<T>) -> Var<'a, T> {
         let output = self.output();
         let mut total_cost = Self::cost(output[0], desired_output[0]);
         
@@ -284,7 +166,7 @@ impl<'a> DiffNetwork<'a> {
 
     /// Computes square error but differential.
     #[inline]
-    fn cost(output: Var<'a>, desired_output: f64) -> Var<'a> {
-        (output - desired_output).powf(2.0)
+    fn cost(output: Var<'a, T>, desired_output: T) -> Var<'a, T> {
+        (output - desired_output).powf(T::one() + T::one())
     }
 }

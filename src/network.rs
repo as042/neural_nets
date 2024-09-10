@@ -43,7 +43,8 @@ pub struct Network<T: GradNum> {
     pub(crate) weights: Vec<Weight<T>>,
 }
 
-impl<T: GradNum> Network<T> {
+// useless type just there so it compiles
+impl Network<f32> {
     /// Creates a builder to aid in construction of a `Network`.
     /// # Examples
     /// ```
@@ -57,7 +58,9 @@ impl<T: GradNum> Network<T> {
     pub fn new() -> NetworkBuilder {
         NetworkBuilder::new()
     }
+}
 
+impl<T: GradNum> Network<T> {
     /// Returns the input `Layer`.
     #[inline]
     pub fn input_layer(&self) -> &Layer {
@@ -144,9 +147,26 @@ impl<T: GradNum> Network<T> {
         &self.weights[idx]
     }
 
+    /// Returns a vector containing all weights and biases.
+    #[inline]
+    pub fn params(&self) -> Vec<T> {
+        // this list transfers all parameters to the cost evaluator
+        let mut params = Vec::default();
+
+        // add all actual nn params
+        for w in self.weights() {
+            params.push(w.value());
+        }
+        for n in self.neurons() {
+            params.push(n.bias());
+        }
+
+        params
+    }
+
     /// Returns the output.
     #[inline]
-    pub fn output(&self) -> Vec<f64> {
+    pub fn output(&self) -> Vec<T> {
         let mut vec = Vec::default();
 
         for n in 0..self.last_layer().num_neurons {
@@ -156,6 +176,22 @@ impl<T: GradNum> Network<T> {
         vec
     }
 
+    /// Sets the weights and biases of a specific `Neuron`.
+    #[inline]
+    pub fn set_neuron_params(&mut self, neuron_idx: usize, bias: T, weights: Vec<T>) {
+        let num_weights = self.nth_neuron(neuron_idx).num_weights();
+        let weight_start_idx = self.nth_neuron(neuron_idx).weight_start_idx();
+        assert_eq!(weights.len(), num_weights);
+
+        self.neurons[neuron_idx].bias = bias;
+
+        for w in 0..num_weights {
+            self.weights[weight_start_idx + w].value = weights[w];
+        }
+    }
+}
+
+impl<T: GradNum + From<f64>> Network<T> {
     /// Randomizes all weights and biases.
     /// # Examples
     /// ```
@@ -188,25 +224,11 @@ impl<T: GradNum> Network<T> {
             self.neurons[b].bias = rng.gen_range(-2.0 - 0.02 * b as f64..2.0 + 0.02 * b as f64).into();
         }
     }
-
-    /// Sets the weights and biases of a specific `Neuron`.
-    #[inline]
-    pub fn set_neuron_params(&mut self, neuron_idx: usize, bias: T, weights: Vec<T>) {
-        let num_weights = self.nth_neuron(neuron_idx).num_weights();
-        let weight_start_idx = self.nth_neuron(neuron_idx).weight_start_idx();
-        assert_eq!(weights.len(), num_weights);
-
-        self.neurons[neuron_idx].bias = bias;
-
-        for w in 0..num_weights {
-            self.weights[weight_start_idx + w].value = weights[w];
-        }
-    }
 }
 
 #[test]
 fn test_set_neuron_params() {
-    let mut net = Network::new()
+    let mut net: Network<f64> = Network::new()
         .add_layer(Layer::new_input().add_neurons(1))
         .add_layer(Layer::new_comput().add_neurons(1))
         .build();
@@ -224,7 +246,7 @@ fn test_set_neuron_params() {
 
 #[test]
 fn test_randomize_params() {
-    let mut net = Network::new()
+    let mut net: Network<f64> = Network::new()
         .add_layer(Layer::new_input().add_neurons(1))
         .add_layer(Layer::new_comput().add_neurons(1))
         .build();
@@ -244,7 +266,7 @@ fn test_randomize_params() {
 fn simple_network_test() {
     use crate::prelude::*;
 
-    let mut net = Network::new()
+    let mut net: Network<f64> = Network::new()
         .add_layer(Layer::new_input().add_neurons(3))
         .add_layer(Layer::new_comput().add_neurons(3).add_activation_fn(ActivationFn::Sigmoid))
         .add_layer(Layer::new_comput().add_neurons(2).add_activation_fn(ActivationFn::Sigmoid))
@@ -268,7 +290,7 @@ fn simple_network_test() {
 fn identity_test() {
     use crate::prelude::*;
 
-    let mut net = Network::new()
+    let mut net: Network<f64> = Network::new()
         .add_layer(Layer::new_input().add_neurons(1))
         .add_layers(3, Layer::new_comput().add_neurons(50).add_activation_fn(ActivationFn::Sigmoid))
         .add_layer(Layer::new_comput().add_neurons(1).add_activation_fn(ActivationFn::Sigmoid))
@@ -284,5 +306,6 @@ fn identity_test() {
 
     avg_cost /= 100.0;
 
-    assert_eq!((avg_cost * 1E6).round() / 1E6, 0.108389);
+    panic!();
+    // assert_eq!((avg_cost * 1E6).round() / 1E6, 0.108389);
 }
