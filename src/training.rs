@@ -36,10 +36,10 @@ impl<T: GradNum> Network<T> {
     pub fn train(&mut self, settings: &RunSettings, desired_output: &Vec<T>, eta: T) -> TrainingResults<T> {
         self.run(settings);
 
-        let param_vec = self.params();
+        let params = self.weights_and_biases();
 
         let tape = Tape::new();
-        let params = tape.new_vars(&param_vec);
+        let params = tape.new_vars(&params.0, &params.1);
 
         
 

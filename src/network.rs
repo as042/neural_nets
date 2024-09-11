@@ -85,6 +85,12 @@ impl<T: GradNum> Network<T> {
         &self.weights
     }
 
+    /// Returns the biases.
+    #[inline]
+    pub fn biases(&self) -> Vec<T> {
+        self.neurons().iter().map(|x| x.bias()).collect()
+    }
+
     /// Returns the number of `Layer`s.
     #[inline]
     pub fn num_layers(&self) -> usize {
@@ -147,21 +153,10 @@ impl<T: GradNum> Network<T> {
         &self.weights[idx]
     }
 
-    /// Returns a vector containing all weights and biases.
+    /// Returns a vector containing all weight values and biases.
     #[inline]
-    pub fn params(&self) -> Vec<T> {
-        // this list transfers all parameters to the cost evaluator
-        let mut params = Vec::default();
-
-        // add all actual nn params
-        for w in self.weights() {
-            params.push(w.value());
-        }
-        for n in self.neurons() {
-            params.push(n.bias());
-        }
-
-        params
+    pub fn weights_and_biases(&self) -> (Vec<T>, Vec<T>) {
+        (self.weights().iter().map(|x| x.value()).collect(), self.biases())
     }
 
     /// Returns the output.
