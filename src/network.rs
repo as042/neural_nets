@@ -1,7 +1,12 @@
+use num_traits::real::Real;
 use rand::{thread_rng, Rng, SeedableRng};
 use rand_chacha::ChaCha8Rng;
 
-use crate::{layer::*, network_builder::NetworkBuilder, neuron::Neuron, prelude::GradNum, weight::Weight};
+use crate::{layer::*, network_builder::NetworkBuilder, neuron::Neuron, weight::Weight};
+
+pub trait GradNum: Real + Default {}
+
+impl<T: Real + Default> GradNum for T {}
 
 /// Used to create, run, and train neural networks.
 /// # Examples

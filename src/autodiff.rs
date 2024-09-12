@@ -1,9 +1,8 @@
-use std::{cell::RefCell, ops::{Add, Div, Mul, Neg, Sub}};
+use core::panic;
+use std::{cell::RefCell, default, ops::{Add, Div, Mul, Neg, Sub}};
 use num_traits::real::Real;
 
-pub trait GradNum: Real + Default {}
-
-impl<T> GradNum for T where T: Real + Default {}
+use crate::network::GradNum;
 
 #[derive(Clone, Debug)]
 pub struct Grad<T: GradNum> {
@@ -28,13 +27,13 @@ impl<T: GradNum> Grad<T> {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
 struct Node<T: GradNum> {
     partials: [T; 2],
     parents: [usize; 2],
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq, PartialOrd)]
 pub struct Tape<T: GradNum> {
     nodes: RefCell<Vec<Node<T>>>,
     num_inputs: RefCell<usize>,
@@ -49,9 +48,25 @@ impl<T: GradNum> Default for Tape<T> {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd)]
+enum TapeWrapper<'t, T: GradNum> {
+    #[default]
+    NoTape,
+    Tape(&'t Tape<T>),
+}
+
+impl<'t, T: GradNum> TapeWrapper<'t, T> {
+    pub fn unwrap(self) -> &'t Tape<T> {
+        match self {
+            Self::Tape(tape) => tape,
+            Self::NoTape => panic!("called `TapeWrapper::unwrap()` on a `NoTape` value"),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd)]
 pub struct Var<'t, T: GradNum> {
-    tape: &'t Tape<T>,
+    tape: TapeWrapper<'t, T>,
     index: usize,
     val: T,
 }
@@ -76,7 +91,7 @@ impl<T: GradNum> Tape<T> {
         *self.num_inputs.borrow_mut() += 1;
         
         Var {
-            tape: self,
+            tape: TapeWrapper::Tape(self),
             index: len,
             val: value,
         }
@@ -109,7 +124,7 @@ impl<T: GradNum> Tape<T> {
         );
 
         Var {
-            tape: self,
+            tape: TapeWrapper::Tape(self),
             index: len,
             val: new_value,
         }
@@ -121,12 +136,12 @@ impl<'t, T: GradNum> Var<'t, T> {
     #[inline]
     pub fn backprop(&self) -> Grad<T> {
         // vector storing the gradients
-        let tape_len = self.tape.nodes.borrow().len();
+        let tape_len = self.tape.unwrap().nodes.borrow().len();
         let mut grad = vec![T::zero(); tape_len];
         grad[self.index] = T::one();
 
         for i in (0..tape_len).rev() {
-            let node = self.tape.nodes.borrow()[i];
+            let node = self.tape.unwrap().nodes.borrow()[i];
             // increment gradient contribution to the left parent
             let lhs_dep = node.parents[0];
             let lhs_partial = node.partials[0];
@@ -142,12 +157,12 @@ impl<'t, T: GradNum> Var<'t, T> {
             grad[rhs_dep] = grad[rhs_dep] + rhs_partial * grad_i;
         }
 
-        Grad { partials: grad, num_inputs: *self.tape.num_inputs.borrow() }
+        Grad { partials: grad, num_inputs: *self.tape.unwrap().num_inputs.borrow() }
     }
 
     #[inline]
     pub fn recip(self) -> Var<'t, T> {
-        self.tape.unary_op(-T::one() / (self.val * self.val), self.index, self.val.recip())
+        self.tape.unwrap().unary_op(-T::one() / (self.val * self.val), self.index, self.val.recip())
     }
 
     #[inline]
