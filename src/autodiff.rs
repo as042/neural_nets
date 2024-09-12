@@ -1,5 +1,5 @@
 use core::panic;
-use std::{cell::RefCell, default, ops::{Add, Div, Mul, Neg, Sub}};
+use std::{cell::RefCell, ops::{Add, Div, Mul, Neg, Sub}};
 use num_traits::real::Real;
 
 use crate::network::GradNum;
@@ -166,24 +166,37 @@ impl<'t, T: GradNum> Var<'t, T> {
     }
 
     #[inline]
+    pub fn sqrt(self) -> Var<'t, T> {
+        self.tape.unwrap().unary_op(, index, new_value)
+    }
+
+    #[inline]
     pub fn sin(self) -> Var<'t, T> {
-        self.tape.unary_op(self.val.cos(), self.index, self.val.sin())
+        self.tape.unwrap().unary_op(self.val.cos(), self.index, self.val.sin())
     }
 
     #[inline]
     pub fn cos(self) -> Var<'t, T> {
-        self.tape.unary_op(-self.val.sin(), self.index, self.val.cos())
+        self.tape.unwrap().unary_op(-self.val.sin(), self.index, self.val.cos())
     }
 
     #[inline]
     pub fn tan(self) -> Var<'t, T> {
         let cos_val = self.val.cos();
-        self.tape.unary_op(T::one() / (cos_val * cos_val), self.index, self.val.tan())
+        self.tape.unwrap().unary_op(T::one() / (cos_val * cos_val), self.index, self.val.tan())
+    }
+
+    #[inline]
+    pub fn tanh(self) -> Var<'t, T> {
+        let two = T::one() + T::one();
+        let four = two + two;
+        let twox = two * self.val;
+        self.tape.unwrap().unary_op(four * (twox).exp() / ((twox).exp() + T::one()).powf(two), self.index, self.val.tanh())
     }
 
     #[inline]
     pub fn exp(self) -> Var<'t, T> {
-        self.tape.unary_op(self.val.exp(), self.index, self.val.exp())
+        self.tape.unwrap().unary_op(self.val.exp(), self.index, self.val.exp())
     }
 
     #[inline]
@@ -200,13 +213,24 @@ impl<'t, T: GradNum> Var<'t, T> {
 
     #[inline]
     pub fn log10(self) -> Var<'t, T> {
-        // I know this seems absolutely insane, but I believe it is the 
-        // way to do it with the fewest operations. ~MAR
         let two = T::one() + T::one();
         let eight = two * two * two;
         let ten = eight + two;
         self.log(ten)
     }
+
+    #[inline]
+    pub fn abs(self) -> Var<'t, T> {
+        // technically the partial should be if zero { NAN } else { signum }, but this shouldn't make a difference
+        self.tape.unwrap().unary_op(self.val.signum(), self.index, self.val.abs())
+    }
+
+    #[inline]
+    pub fn signum(self) -> Var<'t, T> {
+        // technically the partial should be if zero { NAN } else { 0.0 }, but this shouldn't make a difference
+        self.tape.unwrap().unary_op(T::zero(), self.index, self.val.signum())
+    }
+
 }
 
 // addition
@@ -215,7 +239,7 @@ impl<'t, T: GradNum> Add for Var<'t, T> {
 
     #[inline]
     fn add(self, rhs: Var<'t, T>) -> Self::Output {
-        self.tape.binary_op(T::one(), T::one(), self.index, rhs.index, self.val + rhs.val)
+        self.tape.unwrap().binary_op(T::one(), T::one(), self.index, rhs.index, self.val + rhs.val)
     }
 }
 
@@ -224,7 +248,7 @@ impl<'t, T: GradNum> Add<T> for Var<'t, T> {
 
     #[inline]
     fn add(self, rhs: T) -> Self::Output {
-        self.tape.unary_op(T::one(), self.index, self.val + rhs)
+        self.tape.unwrap().unary_op(T::one(), self.index, self.val + rhs)
     }
 }
 
@@ -234,7 +258,7 @@ impl<'t, T: GradNum> Sub for Var<'t, T> {
 
     #[inline]
     fn sub(self, rhs: Var<'t, T>) -> Self::Output {
-        self.tape.binary_op(T::one(), -T::one(), self.index, rhs.index, self.val - rhs.val)
+        self.tape.unwrap().binary_op(T::one(), -T::one(), self.index, rhs.index, self.val - rhs.val)
     }
 }
 
@@ -243,7 +267,7 @@ impl<'t, T: GradNum> Sub<T> for Var<'t, T> {
 
     #[inline]
     fn sub(self, rhs: T) -> Self::Output {
-        self.tape.unary_op(T::one(), self.index, self.val - rhs)
+        self.tape.unwrap().unary_op(T::one(), self.index, self.val - rhs)
     }
 }
 
@@ -253,7 +277,7 @@ impl<'t, T: GradNum> Mul for Var<'t, T> {
 
     #[inline]
     fn mul(self, rhs: Self) -> Self::Output {
-        self.tape.binary_op(rhs.val, self.val, self.index, rhs.index, self.val * rhs.val)
+        self.tape.unwrap().binary_op(rhs.val, self.val, self.index, rhs.index, self.val * rhs.val)
     }
 }
 
@@ -262,7 +286,7 @@ impl<'t, T: GradNum> Mul<T> for Var<'t, T> {
 
     #[inline]
     fn mul(self, rhs: T) -> Self::Output {
-        self.tape.unary_op(rhs, self.index, self.val * rhs)
+        self.tape.unwrap().unary_op(rhs, self.index, self.val * rhs)
     }
 }
 
@@ -272,7 +296,7 @@ impl<'t, T: GradNum> Div for Var<'t, T> {
 
     #[inline]
     fn div(self, rhs: Self) -> Self::Output {
-        self.tape.binary_op(rhs.val.recip(), self.val * -T::one() / (rhs.val * rhs.val), self.index, rhs.index, self.val / rhs.val)
+        self.tape.unwrap().binary_op(rhs.val.recip(), self.val * -T::one() / (rhs.val * rhs.val), self.index, rhs.index, self.val / rhs.val)
     }
 }
 
@@ -281,7 +305,7 @@ impl<'t, T: GradNum> Div<T> for Var<'t, T> {
 
     #[inline]
     fn div(self, rhs: T) -> Self::Output {
-        self.tape.unary_op(rhs.recip(), self.index, self.val / rhs)
+        self.tape.unwrap().unary_op(rhs.recip(), self.index, self.val / rhs)
     }
 }
 
@@ -307,7 +331,7 @@ impl<'t, T: GradNum> Powf<Var<'t, T>> for Var<'t, T> {
 
     #[inline]
     fn powf(self, rhs: Self) -> Self::Output {
-        self.tape.binary_op(rhs.val * self.val.powf(rhs.val - T::one()), self.val.powf(rhs.val) * self.val.ln(), self.index, rhs.index, self.val.powf(rhs.val))
+        self.tape.unwrap().binary_op(rhs.val * self.val.powf(rhs.val - T::one()), self.val.powf(rhs.val) * self.val.ln(), self.index, rhs.index, self.val.powf(rhs.val))
     }
 }
 
@@ -316,7 +340,7 @@ impl<'t, T: GradNum> Powf<T> for Var<'t, T> {
 
     #[inline]
     fn powf(self, rhs: T) -> Self::Output {
-        self.tape.unary_op(rhs * self.val.powf(rhs - T::one()), self.index, self.val.powf(rhs))
+        self.tape.unwrap().unary_op(rhs * self.val.powf(rhs - T::one()), self.index, self.val.powf(rhs))
     }
 }
 
@@ -325,7 +349,7 @@ impl<'t, T: GradNum> Powf<Var<'t, T>> for T {
 
     #[inline]
     fn powf(self, rhs: Var<'t, T>) -> Self::Output {
-        rhs.tape.unary_op(self.powf(rhs.val) * self.ln(), rhs.index, self.powf(rhs.val))
+        rhs.tape.unwrap().unary_op(self.powf(rhs.val) * self.ln(), rhs.index, self.powf(rhs.val))
     }
 }
 
@@ -342,7 +366,7 @@ impl<'t, T: GradNum> Log<Var<'t, T>> for Var<'t, T> {
     #[inline]
     fn log(self, rhs: Self) -> Self::Output {
         let rhs_ln: T = rhs.val.ln();
-        self.tape.binary_op(
+        self.tape.unwrap().binary_op(
             (self.val * rhs_ln).recip(),
             -self.val.ln() / (rhs.val * rhs_ln * rhs_ln),
             self.index, rhs.index, self.val.log(rhs.val))
@@ -354,7 +378,7 @@ impl<'t, T: GradNum> Log<T> for Var<'t, T> {
 
     #[inline]
     fn log(self, rhs: T) -> Self::Output {
-        self.tape.unary_op((self.val * rhs.ln()).recip(), self.index, self.val.log(rhs))
+        self.tape.unwrap().unary_op((self.val * rhs.ln()).recip(), self.index, self.val.log(rhs))
     }
 }
 
@@ -364,7 +388,7 @@ impl<'t, T: GradNum> Log<Var<'t, T>> for T {
     #[inline]
     fn log(self, rhs: Var<'t, T>) -> Var<'t, T> {
         let rhs_ln: T = rhs.val.ln();
-        rhs.tape.unary_op(-self.ln() / (rhs.val * rhs_ln * rhs_ln), rhs.index, self.log(rhs.val))
+        rhs.tape.unwrap().unary_op(-self.ln() / (rhs.val * rhs_ln * rhs_ln), rhs.index, self.log(rhs.val))
     }
 }
 

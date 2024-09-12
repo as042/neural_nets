@@ -2,7 +2,7 @@ use num_traits::real::Real;
 use rand::{thread_rng, Rng, SeedableRng};
 use rand_chacha::ChaCha8Rng;
 
-use crate::{layer::*, network_builder::NetworkBuilder, neuron::Neuron, weight::Weight};
+use crate::{layer::*, network_builder::NetworkBuilder, neuron::Neuron, prelude::Var, weight::Weight};
 
 pub trait GradNum: Real + Default {}
 
@@ -42,14 +42,14 @@ impl<T: Real + Default> GradNum for T {}
 /// println!("{init_cost}");
 /// ```
 #[derive(Clone, Debug, Default, PartialEq, PartialOrd)]
-pub struct Network<T: GradNum> {
+pub struct Network<'t, T: GradNum> {
     pub(crate) layers: Vec<Layer>,
-    pub(crate) neurons: Vec<Neuron<T>>,
-    pub(crate) weights: Vec<Weight<T>>,
+    pub(crate) neurons: Vec<Neuron<'t, T>>,
+    pub(crate) weights: Vec<Weight<'t, T>>,
 }
 
 // useless type just there so it compiles
-impl Network<f32> {
+impl<'t> Network<'t, f32> {
     /// Creates a builder to aid in construction of a `Network`.
     /// # Examples
     /// ```
@@ -65,7 +65,7 @@ impl Network<f32> {
     }
 }
 
-impl<T: GradNum> Network<T> {
+impl<'t, T: GradNum> Network<'t, T> {
     /// Returns the input `Layer`.
     #[inline]
     pub fn input_layer(&self) -> &Layer {
@@ -88,12 +88,6 @@ impl<T: GradNum> Network<T> {
     #[inline]
     pub fn weights(&self) -> &Vec<Weight<T>> {
         &self.weights
-    }
-
-    /// Returns the biases.
-    #[inline]
-    pub fn biases(&self) -> Vec<T> {
-        self.neurons().iter().map(|x| x.bias()).collect()
     }
 
     /// Returns the number of `Layer`s.
@@ -158,12 +152,6 @@ impl<T: GradNum> Network<T> {
         &self.weights[idx]
     }
 
-    /// Returns a vector containing all weight values and biases.
-    #[inline]
-    pub fn weights_and_biases(&self) -> (Vec<T>, Vec<T>) {
-        (self.weights().iter().map(|x| x.value()).collect(), self.biases())
-    }
-
     /// Returns the output.
     #[inline]
     pub fn output(&self) -> Vec<T> {
@@ -191,7 +179,7 @@ impl<T: GradNum> Network<T> {
     }
 }
 
-impl<T: GradNum + From<f64>> Network<T> {
+impl<'t, T: GradNum + From<f64>> Network<'t, T> {
     /// Randomizes all weights and biases.
     /// # Examples
     /// ```

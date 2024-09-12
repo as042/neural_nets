@@ -1,19 +1,17 @@
-use crate::reverse::*;
-
 use crate::prelude::*;
 
 /// Used to configure how a `Network` is run.
 #[derive(Clone, Debug, Default, PartialEq, PartialOrd)]
-pub struct RunSettings {
-    pub(crate) input: Vec<f64>,
+pub struct RunSettings<T: GradNum> {
+    pub(crate) input: Vec<T>,
     pub(crate) clamp: bool,
     pub(crate) print: bool,
 }
 
-impl RunSettings {
+impl<T: GradNum> RunSettings<T> {
     /// Creates a new `Self` with the given input and activation function.
     #[inline]
-    pub fn new(input: Vec<f64>, clamp: bool) -> Self {
+    pub fn new(input: Vec<T>, clamp: bool) -> Self {
         RunSettings {
             input,
             clamp,
@@ -23,7 +21,7 @@ impl RunSettings {
 
     /// Creates a new `Self` with the given input and activation function and has printing enabled.
     #[inline]
-    pub fn new_with_print(input: Vec<f64>, clamp: bool) -> Self {
+    pub fn new_with_print(input: Vec<T>, clamp: bool) -> Self {
         RunSettings {
             input,
             clamp,
@@ -32,10 +30,10 @@ impl RunSettings {
     }
 }
 
-impl Network {
+impl<'t, T: GradNum> Network<'t, T> {
     /// Runs `self` with the given input.
     #[inline]
-    pub fn run(&mut self, settings: &RunSettings) {
+    pub fn run(&mut self, settings: &RunSettings<T>) {
         let input = &settings.input;
 
         assert_eq!(input.len(), self.input_layer().num_neurons()); // input vec must be same len as input layer
@@ -45,7 +43,7 @@ impl Network {
             let mut sum = self.nth_neuron(n).bias();
 
             for w in 0..self.input_layer().num_neurons() {
-                sum += self.nth_weight(self.nth_neuron(n).weight_start_idx() + w).value() * input[w];
+                sum = sum + self.nth_weight(self.nth_neuron(n).weight_start_idx() + w).value() * input[w];
             }
 
             self.neurons[n].activation = self.nth_comput_layer(0).activation_fn().compute(sum);
@@ -59,64 +57,20 @@ impl Network {
                 let mut sum = self.nth_neuron(neuron_idx).bias();
 
                 for w in 0..self.prev_layer(l).num_neurons() {
-                    sum += self.nth_weight(self.nth_neuron(neuron_idx).weight_start_idx() + w).value() * 
+                    sum = sum + self.nth_weight(self.nth_neuron(neuron_idx).weight_start_idx() + w).value() * 
                         self.nth_neuron(self.prev_layer(l).neuron_start_idx() + w).activation();
                 }
 
                 self.neurons[neuron_idx].activation = self.nth_layer(l).activation_fn().compute(sum);
             }
         }
-
-        if settings.print {
-            println!("Output: {:?}", self.output());
-        }
-    }
-}
-
-impl<'a> DiffNetwork<'a> {
-    /// Runs `self` with the given input but is differential.
-    #[inline]
-    pub(crate) fn diff_run(&mut self, settings: RunSettings) -> Vec<Var<'a>> {
-        let input = &settings.input;
-
-        // compute first layer
-        for n in 0..self.layers[1].num_neurons() {
-            let mut sum = self.neurons[n].bias;
-
-            for w in 0..input.len() {
-                sum = sum + self.weights[self.neurons[n].weight_start_idx + w].value * input[w];
-            }
-
-            self.neurons[n].activation = self.layers[1].activation_fn.diff_compute(sum);
-        }
-
-        // compute all other layers
-        for l in 2..self.layers.len() {
-            for n in 0..self.layers[l].num_neurons() {
-                let neuron_idx = self.layers[l].neuron_start_idx() + n;
-
-                let mut sum = self.neurons[neuron_idx].bias;
-
-                for w in 0..self.layers[l - 1].num_neurons() {
-                    sum = sum + self.weights[self.neurons[neuron_idx].weight_start_idx + w].value * 
-                        self.neurons[self.layers[l - 1].neuron_start_idx() + w].activation;
-                }
-
-                self.neurons[neuron_idx].activation = self.layers[l].activation_fn.diff_compute(sum);
-            }
-        }
-
-        if settings.print {
-            println!("Output: {:?}", self.output().iter().map(|x|x.val()).collect::<Vec<f64>>());
-        }
-
-        self.output()
     }
 }
 
 #[test]
 fn test_run() {
-    let mut net = Network::new()
+    let mut builder = Network::new();
+    let mut net: Network<f64> = builder
         .add_layer(Layer::new_input().add_neurons(2))
         .add_layer(Layer::new_comput().add_neurons(2).add_activation_fn(ActivationFn::Sigmoid))
         .add_layer(Layer::new_comput().add_neurons(2).add_activation_fn(ActivationFn::Sigmoid))

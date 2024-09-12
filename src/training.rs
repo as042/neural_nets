@@ -41,7 +41,8 @@ impl<T: GradNum> Network<T> {
         let tape = Tape::new();
         let params = tape.new_vars(&[weights_and_biases.0, weights_and_biases.1].concat());
 
-        let var_network = DiffNetwork::new(weights_and_biases.0, weights_and_biases.1, layer_info);
+        let var_network = self.clone();
+        
 
         // let result = 
         let full_gradient = result.grad();
