@@ -36,12 +36,12 @@ impl<T: GradNum> Network<T> {
     pub fn train(&mut self, settings: &RunSettings, desired_output: &Vec<T>, eta: T) -> TrainingResults<T> {
         self.run(settings);
 
-        let params = self.weights_and_biases();
+        let weights_and_biases = self.weights_and_biases();
 
         let tape = Tape::new();
-        let params = tape.new_vars(&params.0, &params.1);
+        let params = tape.new_vars(&[weights_and_biases.0, weights_and_biases.1].concat());
 
-        
+        let var_network = DiffNetwork::new(weights_and_biases.0, weights_and_biases.1, layer_info);
 
         // let result = 
         let full_gradient = result.grad();
@@ -97,7 +97,7 @@ pub(crate) struct DiffWeight<'a, T: GradNum> {
 impl<'a, T: GradNum> DiffNetwork<'a, T> {
     /// Generates the differential network for backprop.
     #[inline]
-    pub(crate) fn new(params: &[Var<'a, T>], layer_info: &[f64]) -> Self {
+    pub(crate) fn new(weights: &[Var<'a, T>], biases: &[Var<'a, T>], layer_info: &[f64]) -> Self {
         // start creating network
         let mut net = DiffNetwork { layers: vec![], neurons: vec![], weights: vec![] };
 
@@ -115,8 +115,8 @@ impl<'a, T: GradNum> DiffNetwork<'a, T> {
             let weights_per_neuron = layer_info[l - 2] as usize;
             for _ in 0..neurons_in_layer {
                 net.neurons.push(DiffNeuron { 
-                    activation: params[0] * T::zero(), 
-                    bias: params[0], 
+                    activation: weights[0] * T::zero(), 
+                    bias: weights[0], 
                     num_weights: weights_per_neuron, 
                     weight_start_idx: num_weights}
                 );
@@ -128,10 +128,10 @@ impl<'a, T: GradNum> DiffNetwork<'a, T> {
 
         // add weights and neurons
         for w in 0..num_weights {
-            net.weights.push(DiffWeight { value: params[w] });
+            net.weights.push(DiffWeight { value: weights[w] });
         }
         for n in 0..num_neurons {
-            net.neurons[n].bias = params[num_weights + n];
+            net.neurons[n].bias = biases[num_weights];
         }
 
         net
