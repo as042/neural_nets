@@ -111,7 +111,7 @@ impl ActivationFn {
         // this is an approximation derived from the Bürmann series
         (
             (
-                (two.powf(ten + five) + (ten + five + two) * four) * (-three * x.powf(two)).exp() - // 32836.0 
+                (two.powf(ten + five) + (ten + five + two) * four) * (x.powf(two) * -three).exp() - // 32836.0 
                 (eight * three * five * five + one) * six * (ten + three) * (-two * x.powf(two)).exp() - // 93678
                 ((ten + one) * nine * eight - five) * seven * (-four * x.powf(two)).exp() + // 5509
                 (two.powf(ten + six) + (eight * seven * three - one) * five * three) * four * (-x.powf(two)).exp() - // 272164

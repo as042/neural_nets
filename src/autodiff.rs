@@ -167,7 +167,8 @@ impl<'t, T: GradNum> Var<'t, T> {
 
     #[inline]
     pub fn sqrt(self) -> Var<'t, T> {
-        self.tape.unwrap().unary_op(, index, new_value)
+        let two = T::one() + T::one();
+        self.tape.unwrap().unary_op(self.val.powf(-two.recip()) / two, self.index, self.val.sqrt())
     }
 
     #[inline]
