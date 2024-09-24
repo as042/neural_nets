@@ -111,10 +111,10 @@ impl ActivationFn {
         // this is an approximation derived from the Bürmann series
         (
             (
-                (two.powf(ten + five) + (ten + five + two) * four) * (x.powf(two) * -three).exp() - // 32836.0 
-                (eight * three * five * five + one) * six * (ten + three) * (-two * x.powf(two)).exp() - // 93678
-                ((ten + one) * nine * eight - five) * seven * (-four * x.powf(two)).exp() + // 5509
-                (two.powf(ten + six) + (eight * seven * three - one) * five * three) * four * (-x.powf(two)).exp() - // 272164
+                (x.powf(two) * -three).exp() * (two.powf(ten + five) + (ten + five + two) * four) - // 32836.0 
+                (x.powf(two) * -two).exp() * ((eight * three * five * five + one) * six * (ten + three)) - // 93678
+                (x.powf(two) * -four).exp() * (((ten + one) * nine * eight - five) * seven) + // 5509
+                (-x.powf(two)).exp() * ((two.powf(ten + six) + (eight * seven * three - one) * five * three) * four) - // 272164
                 (eight * five * five + one) * (seven * four + one) * (seven * seven - two) // 205813
             ) / (two.powf(ten + one) * nine * seven * five * three) + one // 1935360
         )
@@ -123,7 +123,7 @@ impl ActivationFn {
     /// Computes the SmoothReLU "Softplus" activation function.
     #[inline]
     pub fn smooth_relu<'t, T: GradNum>(x: Var<'t, T>) -> Var<'t, T> {
-        (T::one() + x.exp()).ln()
+        (x.exp() + T::one()).ln()
     }    
 }
 
