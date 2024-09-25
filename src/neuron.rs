@@ -3,7 +3,7 @@ use crate::prelude::{GradNum, Var};
 /// Has an activation that feeds into other `Neuron`s in the `Network`.
 #[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd)]
 pub struct Neuron<'t, T: GradNum> {
-    pub(crate) activation: T,
+    pub(crate) activation: Var<'t, T>,
     pub(crate) bias: Var<'t, T>,
     pub(crate) num_weights: usize,
     pub(crate) weight_start_idx: usize,
@@ -21,7 +21,7 @@ impl<'t, T: GradNum> Neuron<'t, T> {
 
     /// Returns the activation.
     #[inline]
-    pub fn activation(&self) -> T {
+    pub fn activation(&self) -> Var<'t, T> {
         self.activation
     }
 

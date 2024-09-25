@@ -4,13 +4,13 @@ use crate::{layer::*, network::Network, prelude::ActivationFn, running::RunSetti
 
 /// The data returned after training a `Network`.
 #[derive(Clone, Debug, Default, PartialEq, PartialOrd)]
-pub struct TrainingResults<T: GradNum> {
+pub struct TrainingResults<'t, T: GradNum> {
     grad: Vec<T>,
-    output: Vec<T>,
-    cost: T,
+    output: Vec<Var<'t, T>>,
+    cost: Var<'t, T>,
 }
 
-impl<T: GradNum> TrainingResults<T> {
+impl<'t, T: GradNum> TrainingResults<'t, T> {
     /// Returns the grad of the training data.
     #[inline]
     pub fn grad(&self) -> &Vec<T> {
@@ -19,47 +19,45 @@ impl<T: GradNum> TrainingResults<T> {
 
     /// Returns the output of the training data.
     #[inline]
-    pub fn output(&self) -> &Vec<T> {
+    pub fn output(&self) -> &Vec<Var<'t, T>> {
         &self.output
     }
 
     /// Returns the cost of the training data.
     #[inline]
-    pub fn cost(&self) -> T {
+    pub fn cost(&self) -> Var<'t, T> {
         self.cost
     }
 }
 
-impl<T: GradNum> Network<T> {    
+impl<'t, T: GradNum> Network<'t, T> {    
     /// Runs `self` with the given input and adjusts params to minimize cost.
     #[inline]
-    pub fn train(&mut self, settings: &RunSettings, desired_output: &Vec<T>, eta: T) -> TrainingResults<T> {
+    pub fn train(&mut self, settings: &RunSettings<'t, T>, cost_fn: fn(&Vec<Var<'t, T>>, &Vec<T>) -> Var<'t, T>, desired_output: &Vec<T>, eta: T) -> TrainingResults<T> {
+        let tape = Tape::<T>::new();
+        let weights: Vec<T> = self.weights().iter().map(|x| x.value().val()).collect();
+        let biases: Vec<T> = self.neurons().iter().map(|x| x.bias().val()).collect();
+        let _ = tape.new_vars(&[weights, biases].concat());
+    
         self.run(settings);
+        let output = self.output();
+        let cost = cost_fn(&output, desired_output);
 
-        let weights_and_biases = self.weights_and_biases();
+        let full_gradient = cost.backprop();
+        let grad = full_gradient.wrt_inputs();
 
-        let tape = Tape::new();
-        let params = tape.new_vars(&[weights_and_biases.0, weights_and_biases.1].concat());
-
-        let var_network = self.clone();
-        
-
-        // let result = 
-        let full_gradient = result.grad();
-        let grad = full_gradient.wrt(&params);
-
-        self.adjust_params(&grad, eta, settings.clamp);
+        self.adjust_params(grad, eta, settings.clamp);
 
         TrainingResults {
-            grad,
+            grad: grad.to_vec(),
             output: self.output(),
-            cost: self.total_cost(&desired_output),
+            cost,
         }
     }
 
     // Adjusts weights and biases according to grad.
     #[inline]
-    fn adjust_params(&mut self, grad: &Vec<T>, eta: T, clamp: bool) {
+    fn adjust_params(&mut self, grad: &[T], eta: T, clamp: bool) {
         let weights_len = self.weights().len();
         for w in 0..weights_len {
             self.weights[w].value = self.weights[w].value - eta * grad[w];

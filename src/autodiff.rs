@@ -22,7 +22,7 @@ impl<T: GradNum> Grad<T> {
     }
 
     #[inline]
-    pub fn inputs(&self) -> &[T] {
+    pub fn wrt_inputs(&self) -> &[T] {
         &self.partials[0..self.num_inputs]
     }
 }
@@ -158,6 +158,11 @@ impl<'t, T: GradNum> Var<'t, T> {
         }
 
         Grad { partials: grad, num_inputs: *self.tape.unwrap().num_inputs.borrow() }
+    }
+
+    #[inline]
+    pub(crate) fn val(self) -> T {
+        self.val
     }
 
     #[inline]
@@ -402,7 +407,7 @@ fn one_input_test() {
     let z = x * x + x;
     let grad = z.backprop();
 
-    assert_eq!(grad.inputs(), [-199.0]);
+    assert_eq!(grad.wrt_inputs(), [-199.0]);
 }
 
 #[test]
@@ -416,11 +421,11 @@ fn basic_test() {
     let grad = z.backprop();
 
     println!("full grad: {:?}", grad.full());
-    println!("grad: {:?}", grad.inputs());
+    println!("grad: {:?}", grad.wrt_inputs());
     println!("dz/dx of z = -2x + x^3 * y + 2y at x=1.0, y=1.0 is {}", grad.wrt(x));
     println!("dz/dy of z = -2x + x^3 * y + 2y at x=1.0, y=1.0 is {}", grad.wrt(y));
     
-    assert_eq!(grad.inputs(), [1.0, 3.0]);
+    assert_eq!(grad.wrt_inputs(), [1.0, 3.0]);
 }
 
 #[test]
@@ -435,7 +440,7 @@ fn basic_arith_test() {
 
     println!("full grad: {:?}", grad.full());
 
-    assert_eq!(grad.inputs().iter().map(|x| (x * 1E5).round() / 1E5).collect::<Vec<f64>>(), [1.10714, -0.89796]);
+    assert_eq!(grad.wrt_inputs().iter().map(|x| (x * 1E5).round() / 1E5).collect::<Vec<f64>>(), [1.10714, -0.89796]);
 }
 
 #[test]
@@ -462,7 +467,7 @@ fn log_test() {
     let z = x.log(y) + y * x.log2() + x * y.log10() + x * y * (x + y).ln();
     let grad = z.backprop();
 
-    assert_eq!(grad.inputs().iter().map(|x| (x * 1E5).round() / 1E5).collect::<Vec<f64>>(), [15.58278, 9.87404]);
+    assert_eq!(grad.wrt_inputs().iter().map(|x| (x * 1E5).round() / 1E5).collect::<Vec<f64>>(), [15.58278, 9.87404]);
 }
 
 #[test]
@@ -475,7 +480,7 @@ fn trig_test() {
     let z = (x * y * 2.0).sin() * y.cos().sin() * y.tan() + x.tan().recip();
     let grad = z.backprop();
 
-    assert_eq!(grad.inputs().iter().map(|x| (x * 1E3).round() / 1E3).collect::<Vec<f64>>(), [-2847070.909, 0.269]);
+    assert_eq!(grad.wrt_inputs().iter().map(|x| (x * 1E3).round() / 1E3).collect::<Vec<f64>>(), [-2847070.909, 0.269]);
 }
 
 #[test]
@@ -489,7 +494,7 @@ fn three_input_test() {
     let z = x.powf(2.0) + y * a + a;
     let grad = z.backprop();
 
-    assert_eq!(grad.inputs(), [3.0, 4.0, 4.0]);
+    assert_eq!(grad.wrt_inputs(), [3.0, 4.0, 4.0]);
 }
 
 #[test]
@@ -505,7 +510,7 @@ fn complex_test() {
     let z = ((a.recip() / b.recip() + 50.0).log(c)).powf(x) + y * (a + x).sin() + b * 0.3 * (x + y + a + b + c).tan().powf(2.0) / (c + b.powf(y)).log2();
     let grad = z.backprop();
 
-    assert_eq!(grad.inputs().iter().map(|x| (x * 1E5).round() / 1E5).collect::<Vec<f64>>(), 
+    assert_eq!(grad.wrt_inputs().iter().map(|x| (x * 1E5).round() / 1E5).collect::<Vec<f64>>(), 
         [12.46499, -0.16416, 7.83974, 0.31315, -1.12997]);
     assert_eq!(grad.full().len(), 28);
 }
@@ -520,5 +525,5 @@ fn f32_test() {
     let z = Log::log(1.5, x) + Powf::powf(2.0, y);
     let grad = z.backprop();
 
-    assert_eq!(grad.inputs().iter().map(|x| (x * 1E5).round() / 1E5).collect::<Vec<f32>>(), [-0.42196, 11.09036]);
+    assert_eq!(grad.wrt_inputs().iter().map(|x| (x * 1E5).round() / 1E5).collect::<Vec<f32>>(), [-0.42196, 11.09036]);
 }
