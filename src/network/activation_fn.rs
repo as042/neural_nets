@@ -1,10 +1,11 @@
-use crate::{network::GradNum, prelude::{Powf, Var}};
+use crate::autodiff::{grad_num::GradNum, var::*};
 
 /// Represents the function that returns the activation of a `Neuron`.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum ActivationFn {
     #[default]
     None,
+    Linear,
     Sigmoid,
     Tanh,
     ReLU,
@@ -18,7 +19,8 @@ impl ActivationFn {
     #[inline]
     pub(crate) fn compute<'t, T: GradNum>(&self, sum: Var<'t, T>) -> Var<'t, T> {
         match self {
-            ActivationFn::None => sum,
+            ActivationFn::None => sum * T::zero(),
+            ActivationFn::Linear => sum,
             ActivationFn::Sigmoid => ActivationFn::sigmoid(sum),
             ActivationFn::Tanh => sum.tanh(),
             ActivationFn::ReLU => ActivationFn::relu(sum),
