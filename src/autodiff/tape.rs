@@ -39,7 +39,7 @@ impl<T: GradNum> Tape<T> {
         *self.num_inputs.borrow_mut() += 1;
         
         Var {
-            tape: TapeWrapper::Tape(self),
+            tape: self,
             index: len,
             val: value,
         }
@@ -72,26 +72,9 @@ impl<T: GradNum> Tape<T> {
         );
 
         Var {
-            tape: TapeWrapper::Tape(self),
+            tape: self,
             index: len,
             val: new_value,
-        }
-    }
-}
-
-// this is really bad and needs to go
-#[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd)]
-pub enum TapeWrapper<'t, T: GradNum> {
-    #[default]
-    NoTape,
-    Tape(&'t Tape<T>),
-}
-
-impl<'t, T: GradNum> TapeWrapper<'t, T> {
-    pub fn unwrap(self) -> &'t Tape<T> {
-        match self {
-            Self::Tape(tape) => tape,
-            Self::NoTape => panic!("called `TapeWrapper::unwrap()` on a `NoTape` value"),
         }
     }
 }

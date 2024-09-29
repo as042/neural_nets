@@ -3,6 +3,7 @@ pub mod layer;
 pub mod network_builder;
 pub mod layout;
 pub mod params;
+pub mod param_helper;
 pub mod running;
 
 use crate::autodiff::grad_num::GradNum;
