@@ -1,6 +1,14 @@
 use neural_nets::prelude::*;
 
 fn main() { 
+    let layout = Layout::builder()
+        .input_layer(5)
+        .feed_forward_layer(ActivationFn::SiLU, 3)
+        .feed_forward_layer(ActivationFn::Linear, 4)
+        .build();
+
+    let params = Params { weights: todo!(), biases: todo!(), others: todo!() }
+
     // let mut net = Network::new()
     //     .add_layer(Layer::new_input().add_neurons(3))
     //     .add_layer(Layer::new_comput().add_neurons(1000000).add_activation_fn(ActivationFn::GELU))
