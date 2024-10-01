@@ -1,6 +1,5 @@
 pub mod activation_fn;
 pub mod layer;
-pub mod network_builder;
 pub mod layout;
 pub mod params;
 pub mod param_helper;
@@ -11,15 +10,15 @@ use crate::autodiff::grad_num::GradNum;
 use layout::*;
 use params::Params;
 
-#[derive(Clone, Debug, Default, PartialEq, PartialOrd)]
+#[derive(Clone, Debug, PartialEq, PartialOrd)]
 pub struct Network<'t, T: GradNum> {
-    layout: Layout,
+    layout: &'t Layout,
     params: Params<'t, T>,
 }
 
 impl<'t, T: GradNum> Network<'t, T> {
     #[inline]
-    pub fn new(layout: Layout, params: Params<'t, T>) -> Self {
+    pub fn new(layout: &'t Layout, params: Params<'t, T>) -> Self {
         Network { 
             layout, 
             params, 

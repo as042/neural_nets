@@ -1,5 +1,5 @@
 use super::activation_fn::ActivationFn;
-use super::layer::Layer;
+use super::layer::{Layer, LayerType};
 
 #[derive(Clone, Debug, Default, PartialEq, PartialOrd)]
 pub struct Layout {
@@ -22,6 +22,38 @@ impl Layout {
     #[inline]
     pub fn layers(&self) -> &Vec<Layer> {
         &self.layers
+    }
+
+    #[inline]
+    pub fn num_weights(&self) -> usize {
+        if self.layers.len() < 2 { return 0; }
+
+        let mut num_weights = 0;
+        for l in 1..self.layers.len() {
+            if self.layers[l].layer_type != LayerType::FeedForward {
+                continue;
+            }
+
+            num_weights += self.layers[l].num_neurons() * self.layers[l - 1].num_neurons();
+        }
+
+        num_weights
+    }
+
+    #[inline]
+    pub fn num_biases(&self) -> usize {
+        if self.layers.len() < 2 { return 0; }
+
+        let mut num_biases = 0;
+        for l in 1..self.layers.len() {
+            if self.layers[l].layer_type != LayerType::FeedForward {
+                continue;
+            }
+
+            num_biases += self.layers[l].num_neurons();
+        }
+
+        num_biases
     }
 }
 

@@ -1,90 +1,118 @@
-// use crate::autodiff::{grad_num::GradNum, var::Var};
-// use crate::network::Network;
+use crate::autodiff::tape::Tape;
+use crate::autodiff::{grad_num::GradNum, var::Var};
+use crate::network::Network;
 
-// /// Used to configure how a `Network` is run.
-// #[derive(Clone, Debug, Default, PartialEq, PartialOrd)]
-// pub struct RunSettings<'t, T: GradNum> {
-//     pub(crate) input: Vec<Var<'t, T>>,
-//     pub(crate) clamp: bool,
-//     pub(crate) print: bool,
+use super::layer::LayerType;
+
+/// Used to configure how a `Network` is run.
+#[derive(Clone, Debug, Default, PartialEq, PartialOrd)]
+pub struct RunSettings<'t, T: GradNum> {
+    pub(crate) input: Vec<Var<'t, T>>,
+    pub(crate) clamp: bool,
+    pub(crate) print: bool,
+}
+
+impl<'t, T: GradNum> RunSettings<'t, T> {
+    /// Creates a new `Self` with the given input and activation function.
+    #[inline]
+    pub fn new(input: Vec<Var<'t, T>>, clamp: bool) -> Self {
+        RunSettings {
+            input,
+            clamp,
+            print: false,
+        }
+    }
+
+    /// Creates a new `Self` with the given input and activation function and has printing enabled.
+    #[inline]
+    pub fn new_with_print(input: Vec<Var<'t, T>>, clamp: bool) -> Self {
+        RunSettings {
+            input,
+            clamp,
+            print: true,
+        }
+    }
+}
+
+impl<'t, T: GradNum> Network<'t, T> {
+    /// Runs `self` with the given input. Currently only works for basic feedforward networks.
+    #[inline]
+    pub fn run(&mut self, settings: &RunSettings<'t, T>) {
+        let input = &settings.input;
+
+        let layers = self.layout.layers();
+
+        assert_eq!(layers[0].layer_type(), LayerType::Input); // first layer is input
+        assert!(layers.len() > 1); // more than one layer
+        assert!(!layers[1..].iter().any(|&x| x.layer_type != LayerType::FeedForward)); // all but the first layer are feed forward
+
+        // layer_idx, weight_idx, bias_idx, activation
+        let mut neurons: Vec<(usize, usize, usize, Var<'t, T>)> = Vec::default();
+        let mut weights = self.params.weights().to_vec();
+
+        let dummy_var = Tape::new().new_var(T::zero());
+        let mut neuron_count = 0;
+        let mut weight_count = 0;
+        for l in 1..layers.len() {
+            let activation_fn = layers[l].activation_fn();
+            let layer_type = layers[l].layer_type();
+            let neurons_in_layer = layers[l].num_neurons();
+
+            let weights_per_neuron = layers[l - 1].num_neurons();
+            for _ in 0..neurons_in_layer {
+                neurons.push((l, weight_count, neuron_count, dummy_var));
+                weight_count += weights_per_neuron;
+            }
+
+            neuron_count += neurons_in_layer;
+        }
+
+        // compute first layer
+        for n in 0..self.nth_comput_layer(0).num_neurons() {
+            let mut sum = self.neurons[n].bias();
+
+            for w in 0..self.input_layer().num_neurons() {
+                sum = sum + self.weights[self.nth_neuron(n).weight_start_idx() + w].value() * input[w];
+            }
+
+            self.neurons[n].activation = self.nth_comput_layer(0).activation_fn().compute(sum);
+        }
+
+        // compute all other layers
+        for l in 2..self.num_layers() {
+            for n in 0..self.nth_layer(l).num_neurons() {
+                let neuron_idx = self.nth_layer(l).neuron_start_idx() + n;
+
+                let mut sum = self.neurons[neuron_idx].bias();
+
+                for w in 0..self.prev_layer(l).num_neurons() {
+                    sum = sum + self.weights[self.nth_neuron(neuron_idx).weight_start_idx() + w].value() * 
+                        self.neurons[self.prev_layer(l).neuron_start_idx() + w].activation();
+                }
+
+                self.neurons[neuron_idx].activation = self.nth_layer(l).activation_fn().compute(sum);
+            }
+        }
+    }
+}
+
+// #[test]
+// fn test_run() {
+//     let mut builder = Network::new();
+//     let mut net: Network<f64> = builder
+//         .add_layer(Layer::new_input().add_neurons(2))
+//         .add_layer(Layer::new_comput().add_neurons(2).add_activation_fn(ActivationFn::Sigmoid))
+//         .add_layer(Layer::new_comput().add_neurons(2).add_activation_fn(ActivationFn::Sigmoid))
+//         .build();
+
+//     net.randomize_params(Some(0));
+
+//     let settings = &RunSettings::new(
+//         vec![-0.2, 0.1], 
+//         false
+//     );
+
+//     net.run(settings);
+
+//     assert_eq!(net.output(), vec![0.9384751282963776, 0.9156491958141794]);
 // }
-
-// impl<'t, T: GradNum> RunSettings<'t, T> {
-//     /// Creates a new `Self` with the given input and activation function.
-//     #[inline]
-//     pub fn new(input: Vec<Var<'t, T>>, clamp: bool) -> Self {
-//         RunSettings {
-//             input,
-//             clamp,
-//             print: false,
-//         }
-//     }
-
-//     /// Creates a new `Self` with the given input and activation function and has printing enabled.
-//     #[inline]
-//     pub fn new_with_print(input: Vec<Var<'t, T>>, clamp: bool) -> Self {
-//         RunSettings {
-//             input,
-//             clamp,
-//             print: true,
-//         }
-//     }
-// }
-
-// impl<'t, T: GradNum> Network<'t, T> {
-//     /// Runs `self` with the given input.
-//     #[inline]
-//     pub fn run(&mut self, settings: &RunSettings<'t, T>) {
-//         let input = &settings.input;
-
-//         assert_eq!(input.len(), self.input_layer().num_neurons()); // input vec must be same len as input layer
-
-//         // compute first layer
-//         for n in 0..self.nth_comput_layer(0).num_neurons() {
-//             let mut sum = self.neurons[n].bias();
-
-//             for w in 0..self.input_layer().num_neurons() {
-//                 sum = sum + self.weights[self.nth_neuron(n).weight_start_idx() + w].value() * input[w];
-//             }
-
-//             self.neurons[n].activation = self.nth_comput_layer(0).activation_fn().compute(sum);
-//         }
-
-//         // compute all other layers
-//         for l in 2..self.num_layers() {
-//             for n in 0..self.nth_layer(l).num_neurons() {
-//                 let neuron_idx = self.nth_layer(l).neuron_start_idx() + n;
-
-//                 let mut sum = self.neurons[neuron_idx].bias();
-
-//                 for w in 0..self.prev_layer(l).num_neurons() {
-//                     sum = sum + self.weights[self.nth_neuron(neuron_idx).weight_start_idx() + w].value() * 
-//                         self.neurons[self.prev_layer(l).neuron_start_idx() + w].activation();
-//                 }
-
-//                 self.neurons[neuron_idx].activation = self.nth_layer(l).activation_fn().compute(sum);
-//             }
-//         }
-//     }
-// }
-
-// // #[test]
-// // fn test_run() {
-// //     let mut builder = Network::new();
-// //     let mut net: Network<f64> = builder
-// //         .add_layer(Layer::new_input().add_neurons(2))
-// //         .add_layer(Layer::new_comput().add_neurons(2).add_activation_fn(ActivationFn::Sigmoid))
-// //         .add_layer(Layer::new_comput().add_neurons(2).add_activation_fn(ActivationFn::Sigmoid))
-// //         .build();
-
-// //     net.randomize_params(Some(0));
-
-// //     let settings = &RunSettings::new(
-// //         vec![-0.2, 0.1], 
-// //         false
-// //     );
-
-// //     net.run(settings);
-
-// //     assert_eq!(net.output(), vec![0.9384751282963776, 0.9156491958141794]);
-// // }
