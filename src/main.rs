@@ -12,4 +12,5 @@ fn main() {
 
     let net = Network::new(&layout, params);
 
+    net.run(&RunSettings::default());
 }

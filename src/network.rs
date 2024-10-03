@@ -5,6 +5,7 @@ pub mod network_data;
 pub mod params;
 pub mod param_helper;
 pub mod running;
+pub mod run_results;
 pub mod run_settings;
 
 use crate::autodiff::grad_num::GradNum;
