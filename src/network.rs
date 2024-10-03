@@ -1,9 +1,11 @@
 pub mod activation_fn;
 pub mod layer;
 pub mod layout;
+pub mod network_data;
 pub mod params;
 pub mod param_helper;
 pub mod running;
+pub mod run_settings;
 
 use crate::autodiff::grad_num::GradNum;
 
@@ -23,5 +25,15 @@ impl<'t, T: GradNum> Network<'t, T> {
             layout, 
             params, 
         }
+    }
+
+    #[inline]
+    pub fn layout(&self) -> &'t Layout {
+        self.layout
+    }
+
+    #[inline]
+    pub fn params(&self) -> &Params<'t, T> {
+        &self.params
     }
 }

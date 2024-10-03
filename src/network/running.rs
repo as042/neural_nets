@@ -1,85 +1,32 @@
-use crate::autodiff::tape::Tape;
-use crate::autodiff::{grad_num::GradNum, var::Var};
+use crate::autodiff::grad_num::GradNum;
 use crate::network::Network;
 
-use super::layer::LayerType;
-
-/// Used to configure how a `Network` is run.
-#[derive(Clone, Debug, Default, PartialEq, PartialOrd)]
-pub struct RunSettings<'t, T: GradNum> {
-    pub(crate) input: Vec<Var<'t, T>>,
-    pub(crate) clamp: bool,
-    pub(crate) print: bool,
-}
-
-impl<'t, T: GradNum> RunSettings<'t, T> {
-    /// Creates a new `Self` with the given input and activation function.
-    #[inline]
-    pub fn new(input: Vec<Var<'t, T>>, clamp: bool) -> Self {
-        RunSettings {
-            input,
-            clamp,
-            print: false,
-        }
-    }
-
-    /// Creates a new `Self` with the given input and activation function and has printing enabled.
-    #[inline]
-    pub fn new_with_print(input: Vec<Var<'t, T>>, clamp: bool) -> Self {
-        RunSettings {
-            input,
-            clamp,
-            print: true,
-        }
-    }
-}
+use super::network_data::NetworkData;
+use super::run_settings::RunSettings;
 
 impl<'t, T: GradNum> Network<'t, T> {
     /// Runs `self` with the given input. Currently only works for basic feedforward networks.
     #[inline]
-    pub fn run(&mut self, settings: &RunSettings<'t, T>) {
+    pub fn run(&self, settings: &RunSettings<T>) {
         let input = &settings.input;
 
-        let layers = self.layout.layers();
+        assert_eq!(input.len(), self.layout().layers()[0].num_neurons()); // the correct number of inputs must be provided
 
-        assert_eq!(layers[0].layer_type(), LayerType::Input); // first layer is input
-        assert!(layers.len() > 1); // more than one layer
-        assert!(!layers[1..].iter().any(|&x| x.layer_type != LayerType::FeedForward)); // all but the first layer are feed forward
-
-        // layer_idx, weight_idx, bias_idx, activation
-        let mut neurons: Vec<(usize, usize, usize, Var<'t, T>)> = Vec::default();
-        let mut weights = self.params.weights().to_vec();
-
-        let dummy_var = Tape::new().new_var(T::zero());
-        let mut neuron_count = 0;
-        let mut weight_count = 0;
-        for l in 1..layers.len() {
-            let activation_fn = layers[l].activation_fn();
-            let layer_type = layers[l].layer_type();
-            let neurons_in_layer = layers[l].num_neurons();
-
-            let weights_per_neuron = layers[l - 1].num_neurons();
-            for _ in 0..neurons_in_layer {
-                neurons.push((l, weight_count, neuron_count, dummy_var));
-                weight_count += weights_per_neuron;
-            }
-
-            neuron_count += neurons_in_layer;
-        }
+        let mut net_data = NetworkData::new(self.layout().layers(), self.params());
 
         // compute first layer
-        for n in 0..self.nth_comput_layer(0).num_neurons() {
-            let mut sum = self.neurons[n].bias();
+        for n in 0..net_data.layer_data[0].layer.num_neurons() {
+            let mut sum = net_data.neuron_data[n].bias;
 
-            for w in 0..self.input_layer().num_neurons() {
-                sum = sum + self.weights[self.nth_neuron(n).weight_start_idx() + w].value() * input[w];
+            for w in 0..input.len() {
+                sum = sum + net_data.weight_data[net_data.neuron_data[n].weight_start_idx + w] * input[w];
             }
 
-            self.neurons[n].activation = self.nth_comput_layer(0).activation_fn().compute(sum);
+            net_data.neuron_data[n].activation = Some(net_data.layer_data[0].layer.activation_fn().compute(sum));
         }
 
         // compute all other layers
-        for l in 2..self.num_layers() {
+        for l in 1..net_data.layer_data.len() {
             for n in 0..self.nth_layer(l).num_neurons() {
                 let neuron_idx = self.nth_layer(l).neuron_start_idx() + n;
 
