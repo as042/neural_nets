@@ -42,6 +42,17 @@ impl<'t, T: GradNum> NetworkData<'t, T> {
             weight_data,
         }
     }
+
+    #[inline]
+    pub(super) fn output(&self) -> Vec<Var<'t, T>> {
+        let last_layer = self.layer_data.last().unwrap();
+        let mut output = Vec::with_capacity(last_layer.layer.num_neurons());
+        for n in 0..last_layer.layer.num_neurons() {
+            output.push(self.neuron_data[n + last_layer.neuron_start_idx].activation.unwrap());
+        }
+
+        output
+    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq, PartialOrd)]

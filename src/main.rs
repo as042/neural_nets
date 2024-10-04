@@ -3,7 +3,7 @@ use neural_nets::prelude::*;
 fn main() { 
     let layout = Layout::builder()
         .input_layer(5)
-        .feed_forward_layer(ActivationFn::SiLU, 3)
+        .feed_forward_layer(ActivationFn::ReLU, 3)
         .feed_forward_layer(ActivationFn::Linear, 4)
         .build();
 
@@ -12,5 +12,7 @@ fn main() {
 
     let net = Network::new(&layout, params);
 
-    net.run(&RunSettings::default());
+    let res = net.run(vec![0.0; 5]);
+
+    println!("Results: {:?}", res.output());
 }

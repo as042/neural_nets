@@ -3,21 +3,14 @@ use crate::network::Network;
 
 use super::network_data::NetworkData;
 use super::run_results::RunResults;
-use super::run_settings::RunSettings;
 
 impl<'t, T: GradNum> Network<'t, T> {
     /// Runs `self` with the given input. Currently only works for basic feedforward networks.
     #[inline]
-    pub fn run(&self, settings: &RunSettings<T>) -> RunResults {
-        let input = &settings.input;
-
+    pub fn run(&self, input: Vec<T>) -> RunResults<'t, T> {
         assert_eq!(input.len(), self.layout().layers()[0].num_neurons()); // the correct number of inputs must be provided
 
         let mut net_data = NetworkData::new(self.layout().layers(), self.params());
-
-
-        // still need to add clamp
-
 
         // compute first layer
         for n in 0..net_data.layer_data[0].layer.num_neurons() {
@@ -46,7 +39,9 @@ impl<'t, T: GradNum> Network<'t, T> {
             }
         }
 
-        todo!()
+        RunResults {
+            output_vars: net_data.output(),
+        }
     }
 }
 
