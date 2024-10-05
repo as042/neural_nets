@@ -41,6 +41,12 @@ impl<'t, T: GradNum> Var<'t, T> {
         Grad { partials: grad, num_inputs: *self.tape.num_inputs.borrow() }
     }
 
+    /// For easily reading the tape of `self`. Do not use for logic.
+    #[inline]
+    pub fn tape(self) -> &'t Tape<T> {
+        self.tape
+    }
+
     /// For easily reading the value of `self`. Do not use for logic.
     #[inline]
     pub fn val(self) -> T {
@@ -277,6 +283,12 @@ impl<'t, T: GradNum> Log<Var<'t, T>> for T {
     fn log(self, rhs: Var<'t, T>) -> Var<'t, T> {
         let rhs_ln: T = rhs.val.ln();
         rhs.tape.unary_op(-self.ln() / (rhs.val * rhs_ln * rhs_ln), rhs.index, self.log(rhs.val))
+    }
+}
+
+impl<'t, T: GradNum + std::fmt::Debug> std::fmt::Display for Var<'t, T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "({}, {:?})", self.index, self.val)
     }
 }
 

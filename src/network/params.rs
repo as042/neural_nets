@@ -23,3 +23,13 @@ impl<'t, T: GradNum> Params<'t, T> {
         &self.others
     }
 }
+
+impl<'t, T: GradNum + std::fmt::Debug> std::fmt::Display for Params<'t, T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Params {{ weights: [{}], biases: [{}], others: [{}] }}", 
+            self.weights.iter().fold(String::new(), |acc, &num| acc + &num.to_string() + ", "), 
+            self.biases.iter().fold(String::new(), |acc, &num| acc + &num.to_string() + ", "), 
+            self.others.iter().fold(String::new(), |acc, &num| acc + &num.to_string() + ", ")
+        )
+    }
+}

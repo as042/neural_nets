@@ -8,16 +8,9 @@ fn main() {
         .build();
 
     let mut param_helper = ParamHelper::<f64>::new();
-    let params = param_helper.default_params(&layout);
+    let params = param_helper.random_params(&layout, 532.0);
 
-    let net = Network::new(&layout, params);
+    let mut net = Network::<f64>::new(&layout, params);
 
-    let mut res = net.run(&vec![0.0; 5]);
-
-    let cost = res.cost(&CostFn::MSE, &vec![0.0; 4]);
-
-    let full_grad = cost.backprop();
-    let grad = full_grad.wrt_inputs();
-
-    println!("Results: {:?}", grad);
+    println!("{}", net);
 }

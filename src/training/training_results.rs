@@ -3,9 +3,9 @@ use crate::autodiff::grad_num::GradNum;
 /// The data returned after training a `Network`.
 #[derive(Clone, Debug, PartialEq, PartialOrd)]
 pub struct TrainingResults<T: GradNum> {
-    grad: Vec<T>,
-    output: Vec<T>,
-    cost: T,
+    pub(crate) grad: Vec<T>,
+    pub(crate) output: Vec<T>,
+    pub(crate) cost: T,
 }
 
 impl<T: GradNum> TrainingResults<T> {
