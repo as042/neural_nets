@@ -12,7 +12,12 @@ fn main() {
 
     let net = Network::new(&layout, params);
 
-    let res = net.run(vec![0.0; 5]);
+    let mut res = net.run(&vec![0.0; 5]);
 
-    println!("Results: {:?}", res.output());
+    let cost = res.cost(&CostFn::MSE, &vec![0.0; 4]);
+
+    let full_grad = cost.backprop();
+    let grad = full_grad.wrt_inputs();
+
+    println!("Results: {:?}", grad);
 }

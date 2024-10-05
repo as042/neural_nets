@@ -7,7 +7,7 @@ use super::run_results::RunResults;
 impl<'t, T: GradNum> Network<'t, T> {
     /// Runs `self` with the given input. Currently only works for basic feedforward networks.
     #[inline]
-    pub fn run(&self, input: Vec<T>) -> RunResults<'t, T> {
+    pub fn run(&self, input: &Vec<T>) -> RunResults<'t, T> {
         assert_eq!(input.len(), self.layout().layers()[0].num_neurons()); // the correct number of inputs must be provided
 
         let mut net_data = NetworkData::new(self.layout().layers(), self.params());
