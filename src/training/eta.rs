@@ -5,5 +5,19 @@ use crate::autodiff::grad_num::GradNum;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Eta<T: GradNum> {
-    value: T,
+    val: T,
+}
+
+impl<T: GradNum> Eta<T> {
+    #[inline]
+    pub fn new(val: T) -> Self {
+        Eta { 
+            val,
+        }
+    }
+
+    #[inline]
+    pub fn val(&self) -> T {
+        self.val
+    }
 }

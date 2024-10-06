@@ -15,7 +15,7 @@ use params::Params;
 #[derive(Clone, Debug, PartialEq, PartialOrd)]
 pub struct Network<'t, T: GradNum> {
     layout: &'t Layout,
-    params: Params<'t, T>,
+    pub(crate) params: Params<'t, T>,
 }
 
 impl<'t, T: GradNum> Network<'t, T> {
