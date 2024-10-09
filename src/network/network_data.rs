@@ -1,24 +1,24 @@
-use crate::autodiff::{grad_num::GradNum, var::Var};
+use crate::autodiff::{real::{real_math::RealMath, Real}, var::Var};
 
 use super::{layer::{Layer, LayerType}, params::Params};
 
 #[derive(Clone, Default, Debug, PartialEq, PartialOrd)]
-pub(super) struct NetworkData<'t, T: GradNum> {
+pub(super) struct NetworkData<U: RealMath> {
     pub(super) layer_data: Vec<LayerData>,
-    pub(super) neuron_data: Vec<NeuronData<'t, T>>,
-    pub(super) weight_data: Vec<Var<'t, T>>,
+    pub(super) neuron_data: Vec<NeuronData<U>>,
+    pub(super) weight_data: Vec<U>,
 }
 
-impl<'t, T: GradNum> NetworkData<'t, T> {
+impl<'t, U: RealMath> NetworkData<U> {
     #[inline]
-    pub(super) fn new(layers: &Vec<Layer>, params: &Params<'t, T>) -> Self {
+    pub(super) fn new(layers: &Vec<Layer>, params: Params<U>) -> Self {
         assert_eq!(layers[0].layer_type(), LayerType::Input); // first layer is input
         assert!(layers.len() > 1); // more than one layer
         assert!(!layers[1..].iter().any(|&x| x.layer_type != LayerType::FeedForward)); // all but the first layer are feed forward
 
         let mut layer_data = Vec::with_capacity(layers.len() - 1);
         let mut neuron_data = Vec::default();
-        let weight_data = params.weights().to_vec();
+        let weight_data = params.weights;
 
         let mut neuron_count = 0;
         let mut weight_count = 0;
@@ -29,7 +29,7 @@ impl<'t, T: GradNum> NetworkData<'t, T> {
 
             let weights_per_neuron = layers[l - 1].num_neurons();
             for n in 0..neurons_in_layer {
-                neuron_data.push(NeuronData { activation: None, bias: params.biases()[n], weight_start_idx: weight_count });
+                neuron_data.push(NeuronData { activation: None, bias: params.biases[n], weight_start_idx: weight_count });
                 weight_count += weights_per_neuron;
             }
 
@@ -44,7 +44,7 @@ impl<'t, T: GradNum> NetworkData<'t, T> {
     }
 
     #[inline]
-    pub(super) fn output(&self) -> Vec<Var<'t, T>> {
+    pub(super) fn output(&self) -> Vec<U> {
         let last_layer = self.layer_data.last().unwrap();
         let mut output = Vec::with_capacity(last_layer.layer.num_neurons());
         for n in 0..last_layer.layer.num_neurons() {
@@ -62,8 +62,8 @@ pub(super) struct LayerData {
 }
 
 #[derive(Clone, Debug, PartialEq, PartialOrd)]
-pub(super) struct NeuronData<'t, T: GradNum> {
-    pub(super) activation: Option<Var<'t, T>>,
-    pub(super) bias: Var<'t, T>,
+pub(super) struct NeuronData<U: RealMath> {
+    pub(super) activation: Option<U>,
+    pub(super) bias: U,
     pub(super) weight_start_idx: usize,
 }

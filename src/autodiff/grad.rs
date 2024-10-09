@@ -1,13 +1,13 @@
-use super::grad_num::GradNum;
+use super::real::Real;
 use super::var::Var;
 
 #[derive(Clone, Debug)]
-pub struct Grad<T: GradNum> {
+pub struct Grad<T: Real> {
     pub(super) partials: Vec<T>,
     pub(super) num_inputs: usize,
 }
 
-impl<T: GradNum> Grad<T> {
+impl<T: Real> Grad<T> {
     #[inline]
     pub fn wrt(&self, var: Var<T>) -> T {
         self.partials[var.index]

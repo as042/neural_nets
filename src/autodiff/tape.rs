@@ -1,16 +1,16 @@
 use std::cell::RefCell;
 
-use super::grad_num::GradNum;
+use super::real::Real;
 use super::node::Node;
 use super::var::Var;
 
 #[derive(Clone, Debug, PartialEq, PartialOrd)]
-pub struct Tape<T: GradNum> {
+pub struct Tape<T: Real> {
     pub(super) nodes: RefCell<Vec<Node<T>>>,
     pub(super) num_inputs: RefCell<usize>,
 }
 
-impl<T: GradNum> Default for Tape<T> {
+impl<T: Real> Default for Tape<T> {
     fn default() -> Self {
         Tape {
             nodes: vec![].into(),
@@ -19,7 +19,7 @@ impl<T: GradNum> Default for Tape<T> {
     }
 }
 
-impl<T: GradNum> Tape<T> {
+impl<T: Real> Tape<T> {
     #[inline]
     pub fn new() -> Self {
         Self::default()

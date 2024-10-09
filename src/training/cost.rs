@@ -1,9 +1,9 @@
-use crate::autodiff::grad_num::GradNum;
+use crate::autodiff::real::Real;
 use crate::autodiff::var::{Powf, Var};
 use crate::network::run_results::RunResults;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
-pub enum CostFn<'t, T: GradNum> {
+pub enum CostFn<'t, T: Real> {
     #[default]
     MSE,
     RMSE,
@@ -11,7 +11,7 @@ pub enum CostFn<'t, T: GradNum> {
     Custom(fn(&Vec<Var<'t, T>>, &Vec<T>) -> Var<'t, T>)
 }
 
-impl<'t, T: GradNum> CostFn<'t, T> {
+impl<'t, T: Real> CostFn<'t, T> {
     #[inline]
     pub fn compute(&self, output: &Vec<Var<'t, T>>, desired_output: &Vec<T>) -> Var<'t, T> {
         match self {
@@ -53,7 +53,7 @@ impl<'t, T: GradNum> CostFn<'t, T> {
     }
 }
 
-impl<'t, T: GradNum> RunResults<'t, T> {
+impl<'t, T: Real> RunResults<'t, T> {
     #[inline]
     pub fn cost(&mut self, cost_fn: &CostFn<'t, T>, desired_output: &Vec<T>) -> Var<'t, T> {
         if self.output().len() != desired_output.len() {

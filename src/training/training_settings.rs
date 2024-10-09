@@ -1,11 +1,11 @@
-use crate::autodiff::grad_num::GradNum;
+use crate::autodiff::real::Real;
 
 use super::clamp_settings::ClampSettings;
 use super::cost::CostFn;
 use super::eta::Eta;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
-pub struct TrainingSettings<'t, T: GradNum> {
+pub struct TrainingSettings<'t, T: Real> {
     pub batch_size: usize,
     pub num_epochs: usize,
     pub cost_fn: CostFn<'t, T>,
@@ -15,7 +15,7 @@ pub struct TrainingSettings<'t, T: GradNum> {
     pub output_set: Vec<Vec<T>>,
 }
 
-impl<'t, T: GradNum> TrainingSettings<'t, T> {
+impl<'t, T: Real> TrainingSettings<'t, T> {
     #[inline]
     pub fn batch_size(&self) -> &usize {
         &self.batch_size

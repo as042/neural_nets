@@ -1,16 +1,27 @@
-use crate::autodiff::grad_num::GradNum;
+use crate::autodiff::real::operations::OperateWithReal;
+use crate::autodiff::real::real_math::RealMath;
+use crate::autodiff::real::Real;
+use crate::autodiff::var::Var;
 use crate::network::Network;
 
 use super::network_data::NetworkData;
+use super::params::Params;
 use super::run_results::RunResults;
 
-impl<'t, T: GradNum> Network<'t, T> {
+impl Network {
+    // #[inline]
+    // pub fn run<T: GradNum>(&self, input: &Vec<T>, params: &Params<T>) -> RunResults<T> {
+    //     RunResults { 
+    //         output: self.forward_pass(input, params.weights(), params.biases(), params.others()).iter().map(|x| x.val()).v
+    //     }
+    // }
+
     /// Runs `self` with the given input. Currently only works for basic feedforward networks.
     #[inline]
-    pub fn run(&self, input: &Vec<T>) -> RunResults<'t, T> {
+    pub(crate) fn forward_pass<'t, T: Real, U: RealMath + OperateWithReal<T>>(&self, input: &Vec<T>, params: Params<U>) -> Vec<U> {
         assert_eq!(input.len(), self.layout().layers()[0].num_neurons()); // the correct number of inputs must be provided
 
-        let mut net_data = NetworkData::new(self.layout().layers(), self.params());
+        let mut net_data = NetworkData::new(self.layout().layers(), params);
 
         // compute first layer
         for n in 0..net_data.layer_data[0].layer.num_neurons() {
@@ -39,9 +50,7 @@ impl<'t, T: GradNum> Network<'t, T> {
             }
         }
 
-        RunResults {
-            output_vars: net_data.output(),
-        }
+        net_data.output()
     }
 }
 

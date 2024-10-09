@@ -1,14 +1,14 @@
-use crate::autodiff::grad_num::GradNum;
+use crate::autodiff::real::Real;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
-pub struct ClampSettings<T: GradNum> {
+pub struct ClampSettings<T: Real> {
     weight_min: T,
     weight_max: T,
     bias_min: T,
     bias_max: T,
 }
 
-impl<T: GradNum> ClampSettings<T> {
+impl<T: Real> ClampSettings<T> {
     #[inline]
     pub fn new(weight_min: T, weight_max: T, bias_min: T, bias_max: T) -> Self {
         if weight_max <= weight_min {

@@ -1,14 +1,14 @@
-use crate::autodiff::grad_num::GradNum;
+use crate::autodiff::real::Real;
 
 /// The data returned after training a `Network`.
 #[derive(Clone, Debug, PartialEq, PartialOrd)]
-pub struct TrainingResults<T: GradNum> {
+pub struct TrainingResults<T: Real> {
     pub(crate) grad: Vec<T>,
     pub(crate) output: Vec<T>,
     pub(crate) cost: T,
 }
 
-impl<T: GradNum> TrainingResults<T> {
+impl<T: Real> TrainingResults<T> {
     /// Returns the grad of the training data.
     #[inline]
     pub fn grad(&self) -> &Vec<T> {
