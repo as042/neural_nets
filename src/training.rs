@@ -8,23 +8,21 @@ use crate::autodiff::real::operations::OperateWithReal;
 use crate::autodiff::real::real_math::RealMath;
 use crate::autodiff::real::Real;
 use crate::autodiff::tape::Tape;
-use crate::autodiff::var::Var;
 use crate::network::Network;
 use crate::prelude::Params;
 
 use clamp_settings::ClampSettings;
 use eta::Eta;
-use training_results::TrainingResults;
 use training_settings::TrainingSettings;
 
 impl Network {    
     /// Runs `self` with the given input and adjusts params to minimize cost.
     #[inline]
-    pub fn train<'t, T: Real, U: RealMath + OperateWithReal<T>>(&mut self, settings: &TrainingSettings<'t, T>, params: &Params<T>) -> () {
-        for e in 0..settings.num_epochs {
-            let mut tape = Tape::new();
-            for b in 0..settings.num_batches() {
-                let mut vars = params.var_params(&mut tape);
+    pub fn train<'t, T: Real, U: RealMath + OperateWithReal<T>>(&self, settings: &TrainingSettings<'t, T>, mut params: Params<T>) -> Params<T> {
+        for _ in 0..settings.num_epochs {
+            for _ in 0..settings.num_batches() {
+                let mut tape = Tape::new();
+                let vars = params.var_params(&mut tape);
 
                 let mut res = self.forward_pass(&settings.input_set()[0], vars);
 
@@ -32,19 +30,17 @@ impl Network {
 
                 let full_gradient = cost.backprop();
                 let grad = full_gradient.wrt_inputs();
+
+                params = Self::adjust_params(grad, settings.clamp_settings(), settings.eta(), &params);
             }
         }
 
-
-
-        let params = self.adjust_params(grad, settings.clamp_settings(), settings.eta(), params, param_helper);
-
-        ()
+        params
     }
 
     /// Adjusts weights and biases according to grad.
     #[inline]
-    fn adjust_params<'t, T: Real>(&self, grad: &[T], clamp_settings: &ClampSettings<T>, eta: &Eta<T>, params: &Params<'t, T>, param_helper: &'t mut TapeContainer<T>) -> Params<'t, T> {
+    fn adjust_params<'t, T: Real>(grad: &[T], clamp_settings: &ClampSettings<T>, eta: &Eta<T>, params: &Params<T>) -> Params<T> {
         let weights_len = params.weights().len();
         let mut new_weights = Vec::with_capacity(weights_len);
 
@@ -52,31 +48,21 @@ impl Network {
         let mut new_biases = Vec::with_capacity(biases_len);
 
         for w in 0..weights_len {
-            let mut weight = params.weights()[w].val() - eta.val() * grad[w];
+            let weight = params.weights()[w] - eta.val() * grad[w];
             
-            if weight < clamp_settings.weight_min() {
-                weight = clamp_settings.weight_min();
-            }
-            if weight > clamp_settings.weight_max() {
-                weight = clamp_settings.weight_max();
-            }
+            let weight = weight.clamp(clamp_settings.weight_min(), clamp_settings.weight_max());
 
             new_weights.push(weight);
         }
         for b in 0..biases_len {
-            let mut bias = params.biases()[b].val() - eta.val() * grad[weights_len + b];
+            let bias = params.biases()[b] - eta.val() * grad[weights_len + b];
             
-            if bias < clamp_settings.bias_min() {
-                bias = clamp_settings.bias_min();
-            }
-            if bias > clamp_settings.bias_max() {
-                bias = clamp_settings.bias_max();
-            }
+            let bias = bias.clamp(clamp_settings.bias_min(), clamp_settings.bias_max());
 
             new_biases.push(bias);
         }
 
         // others not implemented
-        param_helper.params(new_weights, new_biases, Vec::default())
+        Params::new(new_weights, new_biases, Vec::default())
     }
 }

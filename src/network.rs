@@ -8,6 +8,9 @@ pub mod running;
 pub mod run_results;
 
 use layout::*;
+use params::{Params, Seed};
+
+use crate::autodiff::real::Real;
 
 #[derive(Clone, Debug, PartialEq, PartialOrd)]
 pub struct Network {
@@ -29,6 +32,16 @@ impl Network {
     #[inline]
     pub fn layout(&self) -> &Layout {
         &self.layout
+    }
+
+    #[inline]
+    pub fn default_params<T: Real>(&self) -> Params<T> {
+        Params::default_params(self.layout())
+    }
+
+    #[inline]
+    pub fn random_params<T: Real>(&self, seed: Seed<T>) -> Params<T> {
+        Params::random_params(self.layout(), seed)
     }
 }
 

@@ -278,14 +278,6 @@ impl<'t, T: Real> UnaryOperations for Var<'t, T> {
     fn atanh(self) -> Self {
         todo!()
     }
-    
-    fn gamma(self) -> Self {
-        todo!()
-    }
-    
-    fn ln_gamma(self) -> Self {
-        todo!()
-    }
 }
 
 // var1.log(var2) and var1.powf(var2)
@@ -328,18 +320,6 @@ impl<'t, T: Real> BinaryOperations<Var<'t, T>, Var<'t, T>> for T {
     #[inline]
     fn powf(self, n: Var<'t, T>) -> Var<'t, T> {
         n.tape.unary_op(self.powf(n.val) * self.ln(), n.index, self.powf(n.val))
-    }
-}
-
-impl<'t, T: Real> Clamp for Var<'t, T> {
-    fn clamp(mut self, min: Self, max: Self) {
-        todo!()
-    }
-}
-
-impl<'t, T: Real> Clamp<T> for Var<'t, T> {
-    fn clamp(mut self, min: T, max: T) {
-        todo!()
     }
 }
 

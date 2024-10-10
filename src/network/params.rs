@@ -61,7 +61,7 @@ impl<T: Real> Params<T> {
     }
 
     #[inline]
-    pub fn random_params(&mut self, layout: &Layout, seed: Seed<T>) -> Params<T> { 
+    pub fn random_params(layout: &Layout, seed: Seed<T>) -> Params<T> { 
         let mut init_seed = T::one();
 
         if seed == Seed::OS {
@@ -126,18 +126,23 @@ impl<T: Real> Params<T> {
     }
 
     #[inline]
-    pub fn var_params<'t>(&self, tape: &'t mut Tape<T>) -> Params<Var<'t, T>> {
+    pub fn var_params<'t>(&self, tape: *mut Tape<T>) -> Params<Var<'t, T>> {
         let num_weights = self.weights().len();
         let num_biases = self.biases().len();
 
         let mut weights = Vec::with_capacity(num_weights);
         for w in 0..num_weights {
-            weights.push(tape.new_var(self.weights()[w]));
+            unsafe {
+                weights.push(tape.as_ref().unwrap().new_var(self.weights()[w]));
+            }
+            
         }
 
         let mut biases = Vec::with_capacity(num_biases);
         for b in 0..num_biases {
-            biases.push(tape.new_var(self.biases()[b]));
+            unsafe {
+                biases.push(tape.as_ref().unwrap().new_var(self.biases()[b]));
+            }
         }
 
         Params {

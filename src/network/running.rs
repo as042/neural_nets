@@ -9,15 +9,15 @@ use super::run_results::RunResults;
 
 impl Network {
     // #[inline]
-    // pub fn run<T: GradNum>(&self, input: &Vec<T>, params: &Params<T>) -> RunResults<T> {
+    // pub fn run<T: Real + OperateWithReal<T>>(&self, input: &Vec<T>, params: Params<T>) -> RunResults<T> {
     //     RunResults { 
-    //         output: self.forward_pass(input, params.weights(), params.biases(), params.others()).iter().map(|x| x.val()).v
+    //         output: self.forward_pass(input, params).iter().map(|x| x.val()).v
     //     }
     // }
 
     /// Runs `self` with the given input. Currently only works for basic feedforward networks.
     #[inline]
-    pub(crate) fn forward_pass<'t, T: Real, U: RealMath + OperateWithReal<T>>(&self, input: &Vec<T>, params: Params<U>) -> RunResults<T, U> {
+    pub(crate) fn forward_pass<T: Real, U: RealMath + OperateWithReal<T>>(&self, input: &Vec<T>, params: Params<U>) -> RunResults<T, U> {
         assert_eq!(input.len(), self.layout().layers()[0].num_neurons()); // the correct number of inputs must be provided
 
         let mut net_data = NetworkData::new(self.layout().layers(), params);

@@ -4,11 +4,11 @@ use super::operations::{BinaryOperations, Clamp, UnaryOperations};
 
 impl Real for f32 {
     fn zero() -> Self {
-        todo!()
+        0f32
     }
 
     fn one() -> Self {
-        todo!()
+        1f32
     }
 }
 
@@ -18,118 +18,110 @@ impl UnaryOperations for f32 {
     }
 
     fn abs(self) -> Self {
-        todo!()
+        self.abs()
     }
 
     fn signum(self) -> Self {
-        todo!()
+        self.signum()
     }
 
     fn sqrt(self) -> Self {
-        todo!()
+        self.sqrt()
     }
 
     fn exp(self) -> Self {
-        todo!()
+        self.exp()
     }
 
     fn exp2(self) -> Self {
-        todo!()
+        self.exp2()
     }
 
     fn ln(self) -> Self {
-        todo!()
+        self.ln()
     }
 
     fn log2(self) -> Self {
-        todo!()
+        self.log2()
     }
 
     fn log10(self) -> Self {
-        todo!()
+        self.log10()
     }
 
     fn cbrt(self) -> Self {
-        todo!()
+        self.cbrt()
     }
 
     fn sin(self) -> Self {
-        todo!()
+        self.sin()
     }
 
     fn cos(self) -> Self {
-        todo!()
+        self.cos()
     }
 
     fn tan(self) -> Self {
-        todo!()
+        self.tan()
     }
 
     fn asin(self) -> Self {
-        todo!()
+        self.asin()
     }
 
     fn acos(self) -> Self {
-        todo!()
+        self.acos()
     }
 
     fn atan(self) -> Self {
-        todo!()
+        self.atan()
     }
 
     fn exp_m1(self) -> Self {
-        todo!()
+        self.exp_m1()
     }
 
     fn ln_1p(self) -> Self {
-        todo!()
+        self.ln_1p()
     }
 
     fn sinh(self) -> Self {
-        todo!()
+        self.sinh()
     }
 
     fn cosh(self) -> Self {
-        todo!()
+        self.cosh()
     }
 
     fn tanh(self) -> Self {
-        todo!()
+        self.tanh()
     }
 
     fn asinh(self) -> Self {
-        todo!()
+        self.asinh()
     }
 
     fn acosh(self) -> Self {
-        todo!()
+        self.acosh()
     }
 
     fn atanh(self) -> Self {
-        todo!()
-    }
-
-    fn gamma(self) -> Self {
-        todo!()
-    }
-
-    fn ln_gamma(self) -> Self {
-        todo!()
+        self.atanh()
     }
 }
 
 impl BinaryOperations for f32 {
     fn log(self, base: Self) -> Self {
-        todo!()
+        self.log(base)
     }
 
     fn powf(self, n: Self) -> Self {
-        todo!()
+        self.powf(n)
     }
 }
 
 impl Clamp for f32 {
-    fn clamp(self, min: Self, max: Self) {
-        todo!()
+    fn clamp(self, min: Self, max: Self) -> Self {
+        self.clamp(min, max)
     }
 }

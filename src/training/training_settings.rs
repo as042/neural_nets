@@ -1,5 +1,3 @@
-use crate::autodiff::real::operations::OperateWithReal;
-use crate::autodiff::real::real_math::RealMath;
 use crate::autodiff::real::Real;
 use crate::autodiff::var::Var;
 

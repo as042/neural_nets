@@ -27,8 +27,6 @@ pub trait UnaryOperations {
     fn asinh(self) -> Self;
     fn acosh(self) -> Self;
     fn atanh(self) -> Self;
-    fn gamma(self) -> Self;
-    fn ln_gamma(self) -> Self;
 }
 
 pub trait BinaryOperations<Rhs = Self, Output = Self> {
@@ -37,38 +35,10 @@ pub trait BinaryOperations<Rhs = Self, Output = Self> {
 }
 
 pub trait Clamp<MinMax = Self> {
-    fn clamp(self, min: MinMax, max: MinMax);
+    fn clamp(self, min: MinMax, max: MinMax) -> Self;
 }
 
 pub trait OperateWithReal<T: Real, Output = Self>: 
     Sized + BinaryOperations<T> + 
     Add<T, Output = Output> + Sub<T, Output = Output> + Mul<T, Output = Output> + Div<T, Output = Output> + Rem<T, Output = Output> {
 }
-
-// #[doc(alias = "+")]
-// pub trait AddReal<T: Real, Output = Self> {
-//     type Output;
-
-//     fn add(self, rhs: T) -> Self::Output;
-// }
-
-// #[doc(alias = "-")]
-// pub trait SubReal<T: Real, Output = Self> {
-//     type Output;
-
-//     fn sub(self, rhs: T) -> Self::Output;
-// }
-
-// #[doc(alias = "*")]
-// pub trait MulReal<T: Real, Output = Self> {
-//     type Output;
-
-//     fn mul(self, rhs: T) -> Self::Output;
-// }
-
-// #[doc(alias = "/")]
-// pub trait DivReal<T: Real, Output = Self> {
-//     type Output;
-
-//     fn div(self, rhs: T) -> Self::Output;
-// }

@@ -1,4 +1,4 @@
-use neural_nets::prelude::*;
+use neural_nets::{autodiff::var::Var, prelude::*};
 use training_settings::TrainingSettings;
 
 fn main() { 
@@ -8,12 +8,13 @@ fn main() {
         .feed_forward_layer(ActivationFn::Linear, 4)
         .build();
 
-    let mut tape_container = TapeContainer::<f64>::new();
-    let params = tape_container.random_params(&layout, Seed::OS);
+    let net = Network::new(layout);
 
-    let mut net = Network::new(layout);
+    let params = net.random_params::<f64>(Seed::OS);
 
-    net.train(&TrainingSettings {
+    // net
+
+    net.train::<f64, Var<f64>>(&TrainingSettings {
         batch_size: 1,
         num_epochs: 1,
         cost_fn: CostFn::MSE,
@@ -21,7 +22,7 @@ fn main() {
         eta: Eta::new(0.1),
         input_set: vec![vec![0.1, 0.2, 0.3, 0.4, 0.5]],
         output_set: vec![vec![0.1, -0.2, 0.3, -0.5]],
-    }, &params, &mut tape_container);
+    }, params);
 
     println!("{:?}", net);
 }
