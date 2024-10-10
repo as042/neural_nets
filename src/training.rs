@@ -8,8 +8,7 @@ use crate::autodiff::real::operations::OperateWithReal;
 use crate::autodiff::real::real_math::RealMath;
 use crate::autodiff::real::Real;
 use crate::autodiff::tape::Tape;
-use crate::network::Network;
-use crate::prelude::Params;
+use crate::network::{Network, params::Params};
 
 use clamp_settings::ClampSettings;
 use eta::Eta;

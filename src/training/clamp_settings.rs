@@ -33,16 +33,16 @@ impl<T: Real> ClampSettings<T> {
 
     #[inline]
     pub fn weight_max(&self) -> T {
-        self.weight_min
+        self.weight_max
     }
 
     #[inline]
     pub fn bias_min(&self) -> T {
-        self.weight_min
+        self.bias_min
     }
 
     #[inline]
     pub fn bias_max(&self) -> T {
-        self.weight_min
+        self.bias_max
     }
 }

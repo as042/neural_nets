@@ -127,5 +127,4 @@ impl Clamp for f64 {
 }
 
 impl OperateWithReal<f64> for f64 {
-
 }

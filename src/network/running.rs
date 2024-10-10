@@ -8,12 +8,10 @@ use super::params::Params;
 use super::run_results::RunResults;
 
 impl Network {
-    // #[inline]
-    // pub fn run<T: Real + OperateWithReal<T>>(&self, input: &Vec<T>, params: Params<T>) -> RunResults<T> {
-    //     RunResults { 
-    //         output: self.forward_pass(input, params).iter().map(|x| x.val()).v
-    //     }
-    // }
+    #[inline]
+    pub fn run<T: Real + OperateWithReal<T>>(&self, input: &Vec<T>, params: Params<T>) -> RunResults<T, T> {
+        self.forward_pass(input, params)
+    }
 
     /// Runs `self` with the given input. Currently only works for basic feedforward networks.
     #[inline]
