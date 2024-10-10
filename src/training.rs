@@ -1,6 +1,8 @@
 pub mod clamp_settings;
 pub mod cost;
+pub mod data_set;
 pub mod eta;
+pub mod trainer;
 pub mod training_results;
 pub mod training_settings;
 

@@ -3,7 +3,7 @@ use super::layer::{Layer, LayerType};
 
 #[derive(Clone, Debug, Default, PartialEq, PartialOrd)]
 pub struct Layout {
-    layers: Vec<Layer>,
+    pub(super) layers: Vec<Layer>,
 }
 
 impl Layout {
