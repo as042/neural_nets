@@ -1,6 +1,4 @@
-use std::ops::Mul;
-
-use crate::autodiff::{real::{operations::OperateWithReal, real_math::RealMath, Real}, var::*};
+use crate::autodiff::real::{operations::OperateWithReal, real_math::RealMath, Real};
 
 /// Represents the function that returns the activation of a `Neuron`.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]

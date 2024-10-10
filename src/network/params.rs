@@ -1,6 +1,6 @@
 use std::time::SystemTime;
 
-use crate::autodiff::{real::{real_math::RealMath, Real}, var::Var};
+use crate::autodiff::{real::{real_math::RealMath, Real}, tape::Tape, var::Var};
 
 use super::Layout;
 
@@ -11,9 +11,9 @@ pub struct Params<U: RealMath> {
     pub(super) others: Vec<U>, // currently unused
 }
 
-impl<T: Real> Params<T> {
+impl<U: RealMath> Params<U> {
     #[inline]
-    pub fn new(weights: Vec<T>, biases: Vec<T>, others: Vec<T>) -> Self {
+    pub fn new(weights: Vec<U>, biases: Vec<U>, others: Vec<U>) -> Self {
         Params { 
             weights, 
             biases, 
@@ -21,6 +21,23 @@ impl<T: Real> Params<T> {
         }
     }
 
+    #[inline]
+    pub fn weights(&self) -> &Vec<U> {
+        &self.weights
+    }
+
+    #[inline]
+    pub fn biases(&self) -> &Vec<U> {
+        &self.biases
+    }
+
+    #[inline]
+    pub fn others(&self) -> &Vec<U> {
+        &self.others
+    }
+}
+
+impl<T: Real> Params<T> {
     #[inline]
     pub fn default_params(layout: &Layout) -> Self {
         let num_weights = layout.num_weights();
@@ -90,13 +107,13 @@ impl<T: Real> Params<T> {
         let num_biases = layout.num_biases();
 
         let mut weight_vars = Vec::with_capacity(num_weights);
-        for _ in 0..layout.num_weights() {
+        for _ in 0..num_weights {
             rng = lehmer_rng(rng);
             weight_vars.push(rng / two_to_the_30 - T::one());
         }
 
         let mut bias_vars = Vec::with_capacity(num_biases);
-        for _ in 0..layout.num_biases() {
+        for _ in 0..num_biases {
             rng = lehmer_rng(rng);
             bias_vars.push(rng / two_to_the_30 - T::one());
         }
@@ -109,18 +126,25 @@ impl<T: Real> Params<T> {
     }
 
     #[inline]
-    pub fn weights(&self) -> &Vec<T> {
-        &self.weights
-    }
+    pub fn var_params<'t>(&self, tape: &'t mut Tape<T>) -> Params<Var<'t, T>> {
+        let num_weights = self.weights().len();
+        let num_biases = self.biases().len();
 
-    #[inline]
-    pub fn biases(&self) -> &Vec<T> {
-        &self.biases
-    }
+        let mut weights = Vec::with_capacity(num_weights);
+        for w in 0..num_weights {
+            weights.push(tape.new_var(self.weights()[w]));
+        }
 
-    #[inline]
-    pub fn others(&self) -> &Vec<T> {
-        &self.others
+        let mut biases = Vec::with_capacity(num_biases);
+        for b in 0..num_biases {
+            biases.push(tape.new_var(self.biases()[b]));
+        }
+
+        Params {
+            weights,
+            biases,
+            others: Vec::default(),
+        }
     }
 }
 

@@ -1,7 +1,6 @@
 use crate::autodiff::real::operations::OperateWithReal;
 use crate::autodiff::real::real_math::RealMath;
 use crate::autodiff::real::Real;
-use crate::autodiff::var::Var;
 use crate::network::Network;
 
 use super::network_data::NetworkData;
@@ -18,7 +17,7 @@ impl Network {
 
     /// Runs `self` with the given input. Currently only works for basic feedforward networks.
     #[inline]
-    pub(crate) fn forward_pass<'t, T: Real, U: RealMath + OperateWithReal<T>>(&self, input: &Vec<T>, params: Params<U>) -> Vec<U> {
+    pub(crate) fn forward_pass<'t, T: Real, U: RealMath + OperateWithReal<T>>(&self, input: &Vec<T>, params: Params<U>) -> RunResults<T, U> {
         assert_eq!(input.len(), self.layout().layers()[0].num_neurons()); // the correct number of inputs must be provided
 
         let mut net_data = NetworkData::new(self.layout().layers(), params);
@@ -50,7 +49,10 @@ impl Network {
             }
         }
 
-        net_data.output()
+        RunResults { 
+            output: net_data.output(),
+            _marker: Default::default(),
+        }
     }
 }
 

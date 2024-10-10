@@ -1,4 +1,4 @@
-use crate::autodiff::{real::{real_math::RealMath, Real}, var::Var};
+use crate::autodiff::real::real_math::RealMath;
 
 use super::{layer::{Layer, LayerType}, params::Params};
 

@@ -4,9 +4,13 @@ pub mod eta;
 pub mod training_results;
 pub mod training_settings;
 
+use crate::autodiff::real::operations::OperateWithReal;
+use crate::autodiff::real::real_math::RealMath;
 use crate::autodiff::real::Real;
+use crate::autodiff::tape::Tape;
+use crate::autodiff::var::Var;
 use crate::network::Network;
-use crate::prelude::{TapeContainer, Params};
+use crate::prelude::Params;
 
 use clamp_settings::ClampSettings;
 use eta::Eta;
@@ -16,13 +20,22 @@ use training_settings::TrainingSettings;
 impl Network {    
     /// Runs `self` with the given input and adjusts params to minimize cost.
     #[inline]
-    pub fn train<'t, T: Real>(&mut self, settings: &TrainingSettings<'t, T>, params: &Params<'t, T>, param_helper: &'t mut TapeContainer<T>) -> () {
-        let mut res = self.forward_pass(&settings.input_set()[0], params);
+    pub fn train<'t, T: Real, U: RealMath + OperateWithReal<T>>(&mut self, settings: &TrainingSettings<'t, T>, params: &Params<T>) -> () {
+        for e in 0..settings.num_epochs {
+            let mut tape = Tape::new();
+            for b in 0..settings.num_batches() {
+                let mut vars = params.var_params(&mut tape);
 
-        let cost = res.cost(settings.cost_fn(), &settings.output_set()[0]);
+                let mut res = self.forward_pass(&settings.input_set()[0], vars);
 
-        let full_gradient = cost.backprop();
-        let grad = full_gradient.wrt_inputs();
+                let cost = res.cost(settings.cost_fn(), &settings.output_set()[0]);
+
+                let full_gradient = cost.backprop();
+                let grad = full_gradient.wrt_inputs();
+            }
+        }
+
+
 
         let params = self.adjust_params(grad, settings.clamp_settings(), settings.eta(), params, param_helper);
 

@@ -7,10 +7,7 @@ pub mod param_helper;
 pub mod running;
 pub mod run_results;
 
-use crate::autodiff::real::Real;
-
 use layout::*;
-use params::Params;
 
 #[derive(Clone, Debug, PartialEq, PartialOrd)]
 pub struct Network {
