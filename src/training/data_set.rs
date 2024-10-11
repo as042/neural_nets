@@ -26,7 +26,7 @@ impl<T: Clone> DataSet<T> {
         data_set.input_data = [data_set.input_data, input_data[0].clone()].concat();
         data_set.output_data = [data_set.output_data, output_data[0].clone()].concat();
 
-        for s in 0..input_data.len() {
+        for s in 1..input_data.len() {
             let prev_input_sample = data_set.input_sample_starts_and_lengths.last().unwrap();
             let prev_output_sample = data_set.output_sample_starts_and_lengths.last().unwrap();
             let input_start = prev_input_sample.0 + prev_input_sample.1;
@@ -59,7 +59,7 @@ impl<T: Clone> DataSet<T> {
         data_set.input_data = [data_set.input_data, input_and_output_data[0].0.clone()].concat();
         data_set.output_data = [data_set.output_data, input_and_output_data[0].1.clone()].concat();
 
-        for s in 0..input_and_output_data.len() {
+        for s in 1..input_and_output_data.len() {
             let prev_input_sample = data_set.input_sample_starts_and_lengths.last().unwrap();
             let prev_output_sample = data_set.output_sample_starts_and_lengths.last().unwrap();
             let input_start = prev_input_sample.0 + prev_input_sample.1;
@@ -74,6 +74,55 @@ impl<T: Clone> DataSet<T> {
 
         data_set
     }
+
+    #[inline]
+    pub fn nth_input(&self, n: usize) -> &[T] {
+        let start = self.input_sample_starts_and_lengths[n].0;
+        let len = self.input_sample_starts_and_lengths[n].1;
+
+        &self.input_data[start..len]
+    }
+
+    #[inline]
+    pub fn nth_output(&self, n: usize) -> &[T] {
+        let start = self.output_sample_starts_and_lengths[n].0;
+        let len = self.output_sample_starts_and_lengths[n].1;
+
+        &self.output_data[start..len]
+    }
+
+    #[inline]
+    pub fn nth_sample(&self, n: usize) -> (&[T], &[T]) {
+        (self.nth_input(n), self.nth_output(n))
+    }
 }
 
-// TESTS DESPERATELY NEEDED
+#[test]
+fn new_data_set_test() {
+    let data_set1 = DataSet::new(vec![vec![0.1, 0.3], vec![-0.15, 0.2]], vec![vec![0.5, -0.6], vec![-0.2, -0.34]]);
+
+    let data_set2 = DataSet {
+        input_data: vec![0.1, 0.3, -0.15, 0.2],
+        input_sample_starts_and_lengths: vec![(0, 2), (2, 2)],
+        output_data: vec![0.5, -0.6, -0.2, -0.34],
+        output_sample_starts_and_lengths: vec![(0, 2), (2, 2)],
+    };
+
+    assert_eq!(data_set1, data_set2);
+}
+
+#[test]
+fn new_combined_data_set_test() {
+    let data_set1 = DataSet::new_combined(vec![(vec![0.1, 0.3], vec![0.5, -0.6]), (vec![-0.15, 0.2], vec![-0.2, -0.34])]);
+
+    let data_set2 = DataSet {
+        input_data: vec![0.1, 0.3, -0.15, 0.2],
+        input_sample_starts_and_lengths: vec![(0, 2), (2, 2)],
+        output_data: vec![0.5, -0.6, -0.2, -0.34],
+        output_sample_starts_and_lengths: vec![(0, 2), (2, 2)],
+    };
+
+    assert_eq!(data_set1, data_set2);
+}
+
+#[test]
