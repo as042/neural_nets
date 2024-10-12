@@ -11,14 +11,14 @@ pub(super) struct NetworkData<U: RealMath> {
 
 impl<'t, U: RealMath> NetworkData<U> {
     #[inline]
-    pub(super) fn new(layers: &Vec<Layer>, params: Params<U>) -> Self {
+    pub(super) fn new(layers: &Vec<Layer>, params: &Params<U>) -> Self {
         assert_eq!(layers[0].layer_type(), LayerType::Input); // first layer is input
         assert!(layers.len() > 1); // more than one layer
         assert!(!layers[1..].iter().any(|&x| x.layer_type != LayerType::FeedForward)); // all but the first layer are feed forward
 
         let mut layer_data = Vec::with_capacity(layers.len() - 1);
         let mut neuron_data = Vec::default();
-        let weight_data = params.weights;
+        let weight_data = params.weights.clone();
 
         let mut neuron_count = 0;
         let mut weight_count = 0;

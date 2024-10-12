@@ -1,4 +1,4 @@
-use neural_nets::{autodiff::var::Var, prelude::*};
+use neural_nets::prelude::*;
 
 fn main() { 
     let net = Network::builder()
@@ -15,21 +15,19 @@ fn main() {
         .sample(vec![0.54, -1.2, -0.31, 0.41, 0.53], vec![1.6, -0.5, 0.12, -0.9])
         .build();
 
-    let params = net.random_params::<f64>(Seed::OS);
+    let params = net.random_params::<f64>(Seed::Input(1.0));
 
-    let res = net.run(&input, params.clone());
+    let res = net.run(&input, &params);
     println!("res1: {:?}", res);
 
-    let params = net.train::<f64, Var<f64>>(&TrainingSettings {
-        batch_size: 1,
-        num_epochs: 10,
-        cost_fn: CostFn::MSE,
-        clamp_settings: ClampSettings::new(-1.0, 1.0, -1.0, 1.0),
-        eta: Eta::new(0.1),
-        data_set,
-    }, params);
+    let optimized = net.trainer()
+        .data_set(data_set)
+        .params(params)
+        .batch_size(1)
+        .num_epochs(90)
+        .train();
 
-    let res = net.run(&input, params.clone());
+    let res = net.run(&input, &optimized);
     println!("res2: {:?}", res);
-    println!("new params: {:?}", params);
+    println!("new params: {:?}", optimized);
 }

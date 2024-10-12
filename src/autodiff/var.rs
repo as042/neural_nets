@@ -1,7 +1,7 @@
 use std::ops::{Add, Div, Mul, Neg, Rem, Sub};
 
 use super::grad::Grad;
-use super::real::operations::{BinaryOperations, Clamp, OperateWithReal, UnaryOperations};
+use super::real::operations::{BinaryOperations, OperateWithReal, UnaryOperations};
 use super::real::Real;
 use super::tape::Tape;
 
@@ -140,12 +140,12 @@ impl<'t, T: Real> Div<T> for Var<'t, T> {
     }
 }
 
-// %
+// remainder
 impl<'t, T: Real> Rem for Var<'t, T> {
     type Output = Self;
 
     fn rem(self, rhs: Self) -> Self::Output {
-        todo!()
+        self.tape.binary_op(T::one(), (-self.val / rhs.val).trunc(), self.index, rhs.index, self.val % rhs.val)
     }
 }
 
@@ -153,7 +153,7 @@ impl<'t, T: Real> Rem<T> for Var<'t, T> {
     type Output = Self;
 
     fn rem(self, rhs: T) -> Self::Output {
-        todo!()
+        self.tape.unary_op(T::one(), self.index, self.val % rhs)
     }
 }
 
@@ -212,6 +212,13 @@ impl<'t, T: Real> UnaryOperations for Var<'t, T> {
     }
 
     #[inline]
+    fn cbrt(self) -> Self {
+        let two = T::one() + T::one();
+        let three = two + T::one();
+        self.tape.unary_op(self.val.powf(-two / three) / three, self.index, self.val.cbrt())
+    }
+
+    #[inline]
     fn sin(self) -> Self {
         self.tape.unary_op(self.val.cos(), self.index, self.val.sin())
     }
@@ -227,36 +234,32 @@ impl<'t, T: Real> UnaryOperations for Var<'t, T> {
         self.tape.unary_op(T::one() / (cos_val * cos_val), self.index, self.val.tan())
     }
     
-    fn cbrt(self) -> Self {
-        todo!()
-    }
-    
     fn asin(self) -> Self {
-        todo!()
+        self.tape.unary_op((T::one() - self.val.powf(T::one() + T::one())).sqrt().recip(), self.index, self.val.asin())
     }
     
     fn acos(self) -> Self {
-        todo!()
+        self.tape.unary_op(-(T::one() - self.val.powf(T::one() + T::one())).sqrt().recip(), self.index, self.val.acos())
     }
     
     fn atan(self) -> Self {
-        todo!()
+        self.tape.unary_op((self.val.powf(T::one() + T::one()) + T::one()).recip(), self.index, self.val.atan())
     }
     
     fn exp_m1(self) -> Self {
-        todo!()
+        self.tape.unary_op(self.val.exp(), self.index, self.val.exp_m1())
     }
     
     fn ln_1p(self) -> Self {
-        todo!()
+        self.tape.unary_op((self.val + T::one()).recip(), self.index, self.val.ln_1p())
     }
     
     fn sinh(self) -> Self {
-        todo!()
+        self.tape.unary_op(self.val.cosh(), self.index, self.val.sinh())
     }
     
     fn cosh(self) -> Self {
-        todo!()
+        self.tape.unary_op(self.val.sinh(), self.index, self.val.cosh())
     }
 
     #[inline]
@@ -268,15 +271,31 @@ impl<'t, T: Real> UnaryOperations for Var<'t, T> {
     }
     
     fn asinh(self) -> Self {
-        todo!()
+        self.tape.unary_op((self.val.powf(T::one() + T::one()) + T::one()).sqrt().recip(), self.index, self.val.asinh())
     }
     
     fn acosh(self) -> Self {
-        todo!()
+        self.tape.unary_op(((self.val - T::one()).sqrt() * (self.val + T::one()).sqrt()).recip(), self.index, self.val.acosh())
     }
     
     fn atanh(self) -> Self {
-        todo!()
+        self.tape.unary_op((T::one() - self.val.powf(T::one() + T::one())).recip(), self.index, self.val.atanh())
+    }
+    
+    fn trunc(self) -> Self {
+        self.tape.unary_op(T::zero(), self.index, self.val.trunc())
+    }
+    
+    fn floor(self) -> Self {
+        self.tape.unary_op(T::zero(), self.index, self.val.floor())
+    }
+    
+    fn ceil(self) -> Self {
+        self.tape.unary_op(T::zero(), self.index, self.val.ceil())
+    }
+    
+    fn round(self) -> Self {
+        self.tape.unary_op(T::zero(), self.index, self.val.round())
     }
 }
 

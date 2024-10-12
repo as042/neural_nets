@@ -2,10 +2,10 @@ use crate::autodiff::real::Real;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ClampSettings<T: Real> {
-    weight_min: T,
-    weight_max: T,
-    bias_min: T,
-    bias_max: T,
+    pub(super) weight_min: T,
+    pub(super) weight_max: T,
+    pub(super) bias_min: T,
+    pub(super) bias_max: T,
 }
 
 impl<T: Real> ClampSettings<T> {

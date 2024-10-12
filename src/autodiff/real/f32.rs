@@ -3,6 +3,10 @@ use crate::autodiff::real::Real;
 use super::operations::{BinaryOperations, Clamp, OperateWithReal, UnaryOperations};
 
 impl Real for f32 {
+    const MIN: Self = f32::MIN;
+    
+    const MAX: Self = f32::MAX;
+
     fn zero() -> Self {
         0f32
     }
@@ -107,6 +111,22 @@ impl UnaryOperations for f32 {
 
     fn atanh(self) -> Self {
         self.atanh()
+    }
+    
+    fn trunc(self) -> Self {
+        self.trunc()
+    }
+    
+    fn floor(self) -> Self {
+        self.floor()
+    }
+    
+    fn ceil(self) -> Self {
+        self.ceil()
+    }
+
+    fn round(self) -> Self {
+        self.round()
     }
 }
 

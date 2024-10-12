@@ -27,6 +27,10 @@ pub trait UnaryOperations {
     fn asinh(self) -> Self;
     fn acosh(self) -> Self;
     fn atanh(self) -> Self;
+    fn trunc(self) -> Self;
+    fn floor(self) -> Self;
+    fn ceil(self) -> Self;
+    fn round(self) -> Self;
 }
 
 pub trait BinaryOperations<Rhs = Self, Output = Self> {

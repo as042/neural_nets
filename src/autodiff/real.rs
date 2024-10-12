@@ -10,6 +10,9 @@ use real_math::RealMath;
 
 pub trait Real: RealMath + Clamp + Debug + PartialEq + PartialOrd
 {
+    const MIN: Self;
+    const MAX: Self;
+
     fn zero() -> Self;
     fn one() -> Self;
 }

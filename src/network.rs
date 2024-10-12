@@ -15,7 +15,7 @@ use layout::*;
 use network_builder::NetworkBuilder;
 use params::Params;
 
-#[derive(Clone, Debug, PartialEq, PartialOrd)]
+#[derive(Clone, Debug, Default, PartialEq, PartialOrd)]
 pub struct Network {
     layout: Layout,
 }
@@ -49,8 +49,8 @@ impl Network {
     }
 
     #[inline]
-    pub fn trainer(&self) -> NetworkTrainer {
-        NetworkTrainer::new()
+    pub fn trainer<T: Real>(&self) -> NetworkTrainer<T> {
+        NetworkTrainer::new(self.clone())
     }
 }
 
@@ -78,7 +78,7 @@ fn simple_network_test() {
     let data_set = DataSet::new(vec![input.clone()], vec![desired_output.clone()]);
     let params = net.random_params::<f64>(Seed::OS);
 
-    let res = net.run(&input, params.clone());
+    let res = net.run(&input, &params);
     println!("res1: {:?}", res);
 
     let params = net.train::<f64, Var<f64>>(&TrainingSettings {
@@ -86,10 +86,10 @@ fn simple_network_test() {
         num_epochs: 100,
         cost_fn: CostFn::MSE,
         clamp_settings: ClampSettings::new(-1.0, 1.0, -1.0, 1.0),
-        eta: Eta::new(0.1),
+        eta: Eta::Const(0.1),
         data_set,
     }, params);
 
-    let res = net.run(&input, params);
+    let res = net.run(&input, &params);
     println!("res2: {:?}", res);
 }
