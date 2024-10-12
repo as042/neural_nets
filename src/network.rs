@@ -7,11 +7,13 @@ pub mod params;
 pub mod running;
 pub mod run_results;
 
+use crate::autodiff::real::Real;
+use crate::rng::Seed;
+use crate::training::trainer::NetworkTrainer;
+
 use layout::*;
 use network_builder::NetworkBuilder;
-use params::{Params, Seed};
-
-use crate::{autodiff::real::Real, prelude::trainer::NetworkTrainer};
+use params::Params;
 
 #[derive(Clone, Debug, PartialEq, PartialOrd)]
 pub struct Network {
@@ -64,15 +66,16 @@ fn simple_network_test() {
     use crate::autodiff::var::Var;
 
     let layout = Layout::builder()
-    .input_layer(5)
-    .feed_forward_layer(ActivationFn::ReLU, 3)
-    .feed_forward_layer(ActivationFn::Linear, 4)
-    .build();
+        .input_layer(5)
+        .feed_forward_layer(ActivationFn::ReLU, 3)
+        .feed_forward_layer(ActivationFn::Linear, 4)
+        .build();
 
     let net = Network::new(layout);
 
     let input = vec![0.1, 0.2, 0.3, 0.4, 0.5];
     let desired_output = vec![0.1, -0.2, 0.3, -0.5];
+    let data_set = DataSet::new(vec![input.clone()], vec![desired_output.clone()]);
     let params = net.random_params::<f64>(Seed::OS);
 
     let res = net.run(&input, params.clone());
@@ -84,8 +87,7 @@ fn simple_network_test() {
         cost_fn: CostFn::MSE,
         clamp_settings: ClampSettings::new(-1.0, 1.0, -1.0, 1.0),
         eta: Eta::new(0.1),
-        input_set: vec![input.clone()],
-        output_set: vec![desired_output],
+        data_set,
     }, params);
 
     let res = net.run(&input, params);

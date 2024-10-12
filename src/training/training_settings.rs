@@ -3,6 +3,7 @@ use crate::autodiff::var::Var;
 
 use super::clamp_settings::ClampSettings;
 use super::cost::CostFn;
+use super::data_set::DataSet;
 use super::eta::Eta;
 
 #[derive(Clone, Debug, Default, PartialEq, PartialOrd)]
@@ -12,8 +13,7 @@ pub struct TrainingSettings<'t, T: Real> {
     pub cost_fn: CostFn<T, Var<'t, T>>,
     pub clamp_settings: ClampSettings<T>,
     pub eta: Eta<T>,
-    pub input_set: Vec<Vec<T>>,
-    pub output_set: Vec<Vec<T>>,
+    pub data_set: DataSet<T>,
 }
 
 impl<'t, T: Real> TrainingSettings<'t, T> {
@@ -43,19 +43,12 @@ impl<'t, T: Real> TrainingSettings<'t, T> {
     }
 
     #[inline]
-    pub fn input_set(&self) -> &Vec<Vec<T>> {
-        &self.input_set
-    }
-
-    #[inline]
-    pub fn output_set(&self) -> &Vec<Vec<T>> {
-        &self.output_set
+    pub fn data_set(&self) -> &DataSet<T> {
+        &self.data_set
     }
 
     #[inline]
     pub fn num_batches(&self) -> usize {
-        if self.input_set.len() != self.output_set.len() { panic!("Input and output sets must be same len") };
-
-        (self.input_set.len() as f32 / self.batch_size as f32).ceil() as usize
+        (self.data_set.len() as f32 / self.batch_size as f32).ceil() as usize
     }
 }

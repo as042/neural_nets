@@ -6,11 +6,9 @@ pub mod trainer;
 pub mod training_results;
 pub mod training_settings;
 
-use crate::autodiff::real::operations::OperateWithReal;
-use crate::autodiff::real::real_math::RealMath;
-use crate::autodiff::real::Real;
-use crate::autodiff::tape::Tape;
+use crate::autodiff::{real::{operations::OperateWithReal, Real, real_math::RealMath}, tape::Tape};
 use crate::network::{Network, params::Params};
+use crate::rng::{shuffle, Seed};
 
 use clamp_settings::ClampSettings;
 use eta::Eta;
@@ -21,15 +19,32 @@ impl Network {
     #[inline]
     pub fn train<'t, T: Real, U: RealMath + OperateWithReal<T>>(&self, settings: &TrainingSettings<'t, T>, mut params: Params<T>) -> Params<T> {
         for _ in 0..settings.num_epochs {
-            for _ in 0..settings.num_batches() {
+            let mut samples: Vec<usize> = (0..settings.data_set().len()).collect();
+
+            shuffle(&mut samples, Seed::OS);
+
+            for b in 0..settings.num_batches() {
                 let mut tape = Tape::new();
-                let vars = params.var_params(&mut tape);
 
-                let mut res = self.forward_pass(&settings.input_set()[0], vars);
+                let mut costs = Vec::with_capacity(settings.num_epochs);
 
-                let cost = res.cost(settings.cost_fn(), &settings.output_set()[0]);
+                for s in 0..*settings.batch_size() {
+                    let vars = params.var_params(&mut tape);
 
-                let full_gradient = cost.backprop();
+                    let mut res = self.forward_pass(&settings.data_set().nth_input(b + s).to_vec(), vars);
+
+                    let cost = res.cost(settings.cost_fn(), &settings.data_set.nth_output(b + s).to_vec());
+
+                    costs.push(cost);
+                }
+
+                // combine costs before backprop
+                let mut total_cost = costs[0];
+                for cost in costs[1..].iter() {
+                    total_cost = total_cost + *cost;
+                }
+
+                let full_gradient = total_cost.backprop();
                 let grad = full_gradient.wrt_inputs();
 
                 params = Self::adjust_params(grad, settings.clamp_settings(), settings.eta(), &params);
