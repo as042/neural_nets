@@ -3,20 +3,10 @@ use crate::autodiff::real::Real;
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Eta<T: Real> {
     Const(T),
-    Delta(T, T),
+    Decreasing(T, T),
 }
 
 impl<T: Real> Eta<T> {
-    #[inline]
-    pub fn new_const(val: T) -> Self {
-        Eta::Const(val)
-    }
-
-    #[inline]
-    pub fn new_delta(init: T, delta: T) -> Self {
-        Eta::Delta(init, delta)
-    }
-
     #[inline]
     pub fn point_one() -> Self {
         let two = T::one() + T::one();
@@ -32,13 +22,13 @@ impl<T: Real> Eta<T> {
     }
 
     #[inline]
-    pub fn inside(&self) -> (Option<T>, Option<(T, T)>) {
+    pub fn unwrap(&self) -> (Option<T>, Option<(T, T)>) {
         let mut inside = (None, None);
         if let Eta::Const(v) = self {
             inside.0 = Some(*v);
         }
-        if let Eta::Delta(init, delta) = self {
-            inside.1 = Some((*init, *delta));
+        if let Eta::Decreasing(init, amount) = self {
+            inside.1 = Some((*init, *amount));
         }
 
         inside
@@ -46,15 +36,15 @@ impl<T: Real> Eta<T> {
 
     #[inline]
     pub fn val(&self, epoch: usize) -> T {
-        let inside = self.inside();
+        let inside = self.unwrap();
         let mut val = T::zero();
         if let Some(v) = inside.0 {
             val = v;
         }
-        if let Some((init, delta)) = inside.1 {
+        if let Some((init, amount)) = inside.1 {
             val = init;
             for _ in 0..epoch {
-                val = val - delta;
+                val = val - amount;
             }
         }
         
@@ -64,6 +54,18 @@ impl<T: Real> Eta<T> {
 
 impl<T: Real> Default for Eta<T> {
     fn default() -> Self {
-        todo!()
+        Eta::point_one()
     }
+}
+
+#[test]
+fn test_eta() {
+    assert_eq!(Eta::point_one(), Eta::Const(0.1));
+    assert_eq!(Eta::point_zero_one(), Eta::Const(0.01));
+
+    assert_eq!(Eta::Const(0.03).unwrap(), (Some(0.03), None));
+    assert_eq!(Eta::Decreasing(0.1, 0.01).unwrap(), (None, Some((0.1, 0.01))));
+
+    assert_eq!(Eta::Const(0.314159).val(1), 0.314159);
+    assert_eq!(Eta::Decreasing(1.0, 0.4).val(1), 0.6);
 }

@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use super::activation_fn::ActivationFn;
 use super::layer::{Layer, LayerType};
 
@@ -54,6 +56,12 @@ impl Layout {
         }
 
         num_biases
+    }
+}
+
+impl Display for Layout {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self.layers)
     }
 }
 

@@ -54,23 +54,20 @@ impl Network {
     }
 }
 
-// #[test]
-// fn test_run() {
-//     let mut builder = Network::new();
-//     let mut net: Network<f64> = builder
-//         .add_layer(Layer::new_input().add_neurons(2))
-//         .add_layer(Layer::new_comput().add_neurons(2).add_activation_fn(ActivationFn::Sigmoid))
-//         .add_layer(Layer::new_comput().add_neurons(2).add_activation_fn(ActivationFn::Sigmoid))
-//         .build();
+#[test]
+fn test_run() {
+    use crate::prelude::*;
 
-//     net.randomize_params(Some(0));
+    let net = Network::builder()
+        .input_layer(2)
+        .feed_forward_layer(ActivationFn::ReLU, 2)
+        .feed_forward_layer(ActivationFn::Linear, 2)
+        .build();
 
-//     let settings = &RunSettings::new(
-//         vec![-0.2, 0.1], 
-//         false
-//     );
+    let input = vec![0.5, 0.1];
+    let params = net.default_params();
 
-//     net.run(settings);
+    let res = net.run(&input, &params);
 
-//     assert_eq!(net.output(), vec![0.9384751282963776, 0.9156491958141794]);
-// }
+    assert_eq!(res.output(), &vec![4.2, 4.2]);
+}

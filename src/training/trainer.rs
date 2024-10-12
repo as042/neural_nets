@@ -139,10 +139,10 @@ fn test_trainer() {
     use crate::prelude::*;
 
     let net = Network::builder()
-    .input_layer(5)
-    .feed_forward_layer(ActivationFn::ReLU, 3)
-    .feed_forward_layer(ActivationFn::Linear, 4)
-    .build();
+        .input_layer(5)
+        .feed_forward_layer(ActivationFn::ReLU, 3)
+        .feed_forward_layer(ActivationFn::Linear, 4)
+        .build();
 
     let input = vec![0.1, 0.2, 0.3, 0.4, 0.5];
     let desired_output = vec![0.1, -0.2, 0.3, -0.5];

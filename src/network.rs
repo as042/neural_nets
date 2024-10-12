@@ -7,6 +7,8 @@ pub mod params;
 pub mod running;
 pub mod run_results;
 
+use std::fmt::Display;
+
 use crate::autodiff::real::Real;
 use crate::rng::Seed;
 use crate::training::trainer::NetworkTrainer;
@@ -54,11 +56,11 @@ impl Network {
     }
 }
 
-// impl<'t, T: GradNum + std::fmt::Debug> std::fmt::Display for Network<'t, T> {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         write!(f, "{:?}, {}", self.layout, self.params)
-//     }
-// }
+impl Display for Network {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.layout)
+    }
+}
 
 #[test]
 fn simple_network_test() {

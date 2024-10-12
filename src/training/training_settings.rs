@@ -52,3 +52,30 @@ impl<'t, T: Real> TrainingSettings<'t, T> {
         (self.data_set.len() as f32 / self.batch_size as f32).ceil() as usize
     }
 }
+
+#[test]
+fn test_num_batches() {
+    let data_set = DataSet::<f64>::builder()
+        .sample(vec![], vec![])
+        .sample(vec![], vec![])
+        .sample(vec![], vec![])
+        .sample(vec![], vec![])
+        .sample(vec![], vec![])
+        .sample(vec![], vec![])
+        .sample(vec![], vec![])
+        .sample(vec![], vec![])
+        .sample(vec![], vec![])
+        .sample(vec![], vec![])
+        .build();
+
+    let settings = TrainingSettings {
+        batch_size: 4,
+        num_epochs: 3,
+        cost_fn: CostFn::MAE,
+        clamp_settings: ClampSettings::default(),
+        eta: Eta::Const(0.00001),
+        data_set,
+    };
+
+    assert_eq!(settings.num_batches(), 3);
+}

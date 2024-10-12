@@ -24,6 +24,7 @@ pub fn lehmer_rng<T: Real>(state: T) -> T {
     (num48271 * state) % num0x7fffffff
 }
 
+#[inline]
 pub fn os_seed<T: Real>() -> T {
     let system_time = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_nanos();
 
@@ -53,6 +54,7 @@ pub fn os_seed<T: Real>() -> T {
     val
 }
 
+#[inline]
 pub fn shuffle<T: Clone>(vec: &mut Vec<T>, seed: Seed<f64>) {
     let mut rand = 0.0;
     if seed == Seed::OS {

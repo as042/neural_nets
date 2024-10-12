@@ -20,21 +20,16 @@ impl Network {
     pub fn train<'t, T: Real, U: RealMath + OperateWithReal<T>>(&self, settings: &TrainingSettings<'t, T>, mut params: Params<T>) -> Params<T> {
         for e in 0..settings.num_epochs {
             let mut samples: Vec<usize> = (0..settings.data_set().len()).collect();
-
             shuffle(&mut samples, Seed::OS);
 
             for b in 0..settings.num_batches() {
                 let mut tape = Tape::new();
-
                 let mut costs = Vec::with_capacity(settings.num_epochs);
-
                 for s in 0..*settings.batch_size() {
                     let vars = params.var_params(&mut tape);
-
                     let mut res = self.forward_pass(&settings.data_set().nth_input(b + s).to_vec(), &vars);
 
                     let cost = res.cost(settings.cost_fn(), &settings.data_set.nth_output(b + s).to_vec());
-
                     costs.push(cost);
                 }
 
@@ -65,14 +60,12 @@ impl Network {
 
         for w in 0..weights_len {
             let weight = params.weights()[w] - eta.val(epoch) * grad[w];
-            
             let weight = weight.clamp(clamp_settings.weight_min(), clamp_settings.weight_max());
 
             new_weights.push(weight);
         }
         for b in 0..biases_len {
             let bias = params.biases()[b] - eta.val(epoch) * grad[weights_len + b];
-            
             let bias = bias.clamp(clamp_settings.bias_min(), clamp_settings.bias_max());
 
             new_biases.push(bias);

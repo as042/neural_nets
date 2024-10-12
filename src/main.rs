@@ -25,6 +25,7 @@ fn main() {
         .params(params)
         .batch_size(1)
         .num_epochs(90)
+        .eta(Eta::Const(1.0))
         .train();
 
     let res = net.run(&input, &optimized);
