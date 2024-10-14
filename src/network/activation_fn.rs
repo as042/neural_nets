@@ -96,6 +96,42 @@ impl ActivationFn {
     /// Computes the SmoothReLU "Softplus" activation function.
     #[inline]
     pub fn smooth_relu<'t, T: Real, U: RealMath + OperateWithReal<T>>(x: U) -> U {
-        (x.exp() + T::one()).ln()
+        (x.exp()).ln_1p()
     }    
+
+    /// Computes the SmoothReLU "Softplus" activation function with power "p" instead of e.
+    #[inline]
+    pub fn alt_smooth_relu<'t, T: Real, U: RealMath + OperateWithReal<T>>(x: U, p: T) -> U {
+        (x.powf(p)).log(p)
+    }    
+}
+
+#[test]
+fn sigmoid_test() {
+    assert_eq!(ActivationFn::sigmoid(0.0), 0.5);
+    assert_eq!((ActivationFn::sigmoid(10f64) * 1E6).round() / 1E6, 0.999955);
+    assert!(ActivationFn::sigmoid(f64::MIN) >= 0.0);
+}
+
+#[test]
+fn relu_test() {
+    assert_eq!(ActivationFn::relu(5.0), 5.0);
+    assert_eq!(ActivationFn::relu(f64::MAX / 2.0), f64::MAX / 2.0);
+    assert_eq!(ActivationFn::relu(f64::EPSILON), f64::EPSILON);
+    assert_eq!(ActivationFn::relu(-0.1), 0.0);
+    assert_eq!(ActivationFn::relu(-1000000.0), 0.0);
+}
+
+#[test]
+fn erf_test() {
+    assert_eq!(ActivationFn::erf(0.0), 0.0);
+    assert!(ActivationFn::erf(f64::MAX) <= 1.0);
+    assert_eq!((ActivationFn::erf(0.21f64) * 1E2).round() / 1E2, 0.23); // erf is merely an approximation, very imprecise
+}
+
+#[test]
+fn smooth_relu() {
+    assert!(ActivationFn::smooth_relu(f64::MIN) >= 0.0);
+    assert!(ActivationFn::smooth_relu(f64::MAX).is_infinite());
+    assert_eq!(ActivationFn::smooth_relu(0.0), 2f64.ln());
 }

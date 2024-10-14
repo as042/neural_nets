@@ -1,6 +1,6 @@
 use crate::autodiff::real::Real;
 
-use super::operations::{BinaryOperations, Clamp, OperateWithReal, UnaryOperations};
+use super::operations::{BinaryOperations, Clamp, UnaryOperations};
 
 impl Real for f64 {
     const MIN: Self = f64::MIN;
@@ -144,7 +144,4 @@ impl Clamp for f64 {
     fn clamp(self, min: Self, max: Self) -> Self {
         self.clamp(min, max)
     }
-}
-
-impl OperateWithReal<f64> for f64 {
 }

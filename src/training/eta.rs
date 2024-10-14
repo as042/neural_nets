@@ -1,4 +1,4 @@
-use crate::autodiff::real::Real;
+use crate::{autodiff::real::Real, prelude::ActivationFn};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Eta<T: Real> {
@@ -42,9 +42,11 @@ impl<T: Real> Eta<T> {
             val = v;
         }
         if let Some((init, amount)) = inside.1 {
+            let two = T::one() + T::one();
+            let ten = two * two * two + two;
             val = init;
             for _ in 0..epoch {
-                val = val - amount;
+                val = ActivationFn::alt_smooth_relu::<T, T>(val - amount, ten.powf(ten + ten + ten));
             }
         }
         
@@ -67,5 +69,5 @@ fn test_eta() {
     assert_eq!(Eta::Decreasing(0.1, 0.01).unwrap(), (None, Some((0.1, 0.01))));
 
     assert_eq!(Eta::Const(0.314159).val(1), 0.314159);
-    assert_eq!(Eta::Decreasing(1.0, 0.4).val(1), 0.6);
+    assert_eq!(Eta::Decreasing(1.0f64, 0.8).val(1), 0.6);
 }
