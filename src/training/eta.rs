@@ -42,11 +42,9 @@ impl<T: Real> Eta<T> {
             val = v;
         }
         if let Some((init, amount)) = inside.1 {
-            let two = T::one() + T::one();
-            let ten = two * two * two + two;
             val = init;
             for _ in 0..epoch {
-                val = ActivationFn::alt_smooth_relu::<T, T>(val - amount, ten.powf(ten + ten + ten));
+                val = ActivationFn::eta_relu::<T, T>(val - amount);
             }
         }
         
@@ -69,5 +67,6 @@ fn test_eta() {
     assert_eq!(Eta::Decreasing(0.1, 0.01).unwrap(), (None, Some((0.1, 0.01))));
 
     assert_eq!(Eta::Const(0.314159).val(1), 0.314159);
-    assert_eq!(Eta::Decreasing(1.0f64, 0.8).val(1), 0.6);
+    assert_eq!((Eta::Decreasing(1.0f64, 0.8).val(1) * 10.0).round() / 10.0, 0.2);
+    assert!(Eta::Decreasing(1.0f64, 0.8).val(20) > 0.0 && Eta::Decreasing(1.0f64, 0.8).val(20) < 0.001);
 }

@@ -90,6 +90,7 @@ fn simple_network_test() {
         clamp_settings: ClampSettings::new(-1.0, 1.0, -1.0, 1.0),
         eta: Eta::Const(0.1),
         data_set,
+        stoch_shuffle_seed: Seed::Input(5.0),
     }, params);
 
     let res = net.run(&input, &params);

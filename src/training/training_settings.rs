@@ -1,5 +1,6 @@
 use crate::autodiff::real::Real;
 use crate::autodiff::var::Var;
+use crate::rng::Seed;
 
 use super::clamp_settings::ClampSettings;
 use super::cost::CostFn;
@@ -14,6 +15,7 @@ pub struct TrainingSettings<'t, T: Real> {
     pub clamp_settings: ClampSettings<T>,
     pub eta: Eta<T>,
     pub data_set: DataSet<T>,
+    pub stoch_shuffle_seed: Seed<T>,
 }
 
 impl<'t, T: Real> TrainingSettings<'t, T> {
@@ -48,6 +50,11 @@ impl<'t, T: Real> TrainingSettings<'t, T> {
     }
 
     #[inline]
+    pub fn stoch_shuffle_seed(&self) -> &Seed<T>{
+        &self.stoch_shuffle_seed
+    }
+
+    #[inline]
     pub fn num_batches(&self) -> usize {
         (self.data_set.len() as f32 / self.batch_size as f32).ceil() as usize
     }
@@ -75,6 +82,7 @@ fn test_num_batches() {
         clamp_settings: ClampSettings::default(),
         eta: Eta::Const(0.00001),
         data_set,
+        stoch_shuffle_seed: Seed::OS
     };
 
     assert_eq!(settings.num_batches(), 3);

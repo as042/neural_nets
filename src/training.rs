@@ -20,7 +20,7 @@ impl Network {
     pub fn train<'t, T: Real, U: RealMath + OperateWithReal<T>>(&self, settings: &TrainingSettings<'t, T>, mut params: Params<T>) -> Params<T> {
         for e in 0..settings.num_epochs {
             let mut samples: Vec<usize> = (0..settings.data_set().len()).collect();
-            shuffle(&mut samples, Seed::OS);
+            shuffle(&mut samples, settings.stoch_shuffle_seed);
 
             for b in 0..settings.num_batches() {
                 let mut tape = Tape::new();

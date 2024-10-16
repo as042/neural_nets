@@ -55,19 +55,24 @@ pub fn os_seed<T: Real>() -> T {
 }
 
 #[inline]
-pub fn shuffle<T: Clone>(vec: &mut Vec<T>, seed: Seed<f64>) {
-    let mut rand = 0.0;
+pub fn shuffle<T: Real>(vec: &mut Vec<usize>, seed: Seed<T>) {
+    let mut rand = T::zero();
     if seed == Seed::OS {
         rand = os_seed();
     }
     else if let Seed::Input(val) = seed {
-        if val <= f64::EPSILON { panic!("Seed must be greater than 0") };
+        if val <= T::zero() { panic!("Seed must be greater than 0") };
 
         rand = val;
     }
 
     for i in 0..(vec.len() - 1) {
-        let j = (rand as usize) % (vec.len() - i) + i;
+        let j = real_to_i32(rand) as usize % (vec.len() - i) + i;
         vec.swap(i, j);
     }
+}
+
+#[inline]
+fn real_to_i32<T: Real>(x: T) -> i32 {
+    todo!()
 }
