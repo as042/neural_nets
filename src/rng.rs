@@ -67,12 +67,51 @@ pub fn shuffle<T: Real>(vec: &mut Vec<usize>, seed: Seed<T>) {
     }
 
     for i in 0..(vec.len() - 1) {
-        let j = real_to_i32(rand) as usize % (vec.len() - i) + i;
+        let j = real_to_i64(rand) as usize % (vec.len() - i) + i;
         vec.swap(i, j);
     }
 }
 
 #[inline]
-fn real_to_i32<T: Real>(x: T) -> i32 {
-    todo!()
+fn real_to_i64<T: Real>(mut x: T) -> i64 {
+    let two = T::one() + T::one();
+    let ten = two * two * two + two;    
+
+    let sign = x.signum();
+    x = x.abs();
+    let mut val = 0;
+
+    let mut i = T::zero();
+    let mut j = 0;
+    while i < x.log10().trunc() + T::one() {
+        let digit = (x / ten.powf(i)).trunc() % ten; 
+
+        val += 10i64.pow(j) * if digit == T::zero() { 0 }
+            else if digit == T::one() { 1 }
+            else if digit == two { 2 }
+            else if digit == two + T::one() { 3 }
+            else if digit == two + two { 4 }
+            else if digit == two + two + T::one() { 5 }
+            else if digit == ten - two - two { 6 }
+            else if digit == ten - two - T::one() { 7 }
+            else if digit == ten - two { 8 }
+            else if digit == ten - T::one() { 9 }
+            else { panic!("Invalid digit") };
+
+        i = i + T::one();
+        j += 1;
+    } 
+
+    val * if sign == T::one() { 1 } else { -1 }
+}
+
+#[test]
+fn real_to_i64_test() {
+    assert_eq!(real_to_i64(69.0), 69);
+    assert_eq!(real_to_i64(1000012428f64), 1000012428);
+    assert_eq!(real_to_i64(10173480128374f64), 10173480128374);
+    assert_eq!(real_to_i64(-128397.0), -128397);
+    assert_eq!(real_to_i64(-0.0), 0);
+    assert_eq!(real_to_i64(10.5), 10);
+    assert_eq!(real_to_i64(199.9), 199);
 }

@@ -8,7 +8,7 @@ pub mod training_settings;
 
 use crate::autodiff::{real::{operations::OperateWithReal, Real, real_math::RealMath}, tape::Tape};
 use crate::network::{Network, params::Params};
-use crate::rng::{shuffle, Seed};
+use crate::rng::shuffle;
 
 use clamp_settings::ClampSettings;
 use eta::Eta;
@@ -25,11 +25,12 @@ impl Network {
             for b in 0..settings.num_batches() {
                 let mut tape = Tape::new();
                 let mut costs = Vec::with_capacity(settings.num_epochs);
-                for s in 0..*settings.batch_size() {
+                for s in 0..settings.batch_size {
                     let vars = params.var_params(&mut tape);
-                    let mut res = self.forward_pass(&settings.data_set().nth_input(b + s).to_vec(), &vars);
+                    let sample_idx = samples[b + s];
+                    let mut res = self.forward_pass(&settings.data_set().nth_input(sample_idx).to_vec(), &vars);
 
-                    let cost = res.cost(settings.cost_fn(), &settings.data_set.nth_output(b + s).to_vec());
+                    let cost = res.cost(settings.cost_fn(), &settings.data_set.nth_output(sample_idx).to_vec());
                     costs.push(cost);
                 }
 

@@ -1,6 +1,7 @@
 pub mod autodiff;
 pub mod network;
 pub mod rng;
+pub mod tests;
 pub mod training;
 
 pub mod prelude {
