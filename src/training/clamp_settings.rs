@@ -42,3 +42,9 @@ impl<T: Real> ClampSettings<T> {
         self.bias_max
     }
 }
+
+#[test]
+#[should_panic]
+fn test_new() {
+    ClampSettings::new(1.0, 0.5, 0.0, 1.0);
+}

@@ -1,8 +1,9 @@
 pub mod autodiff;
 pub mod network;
 pub mod rng;
-pub mod tests;
 pub mod training;
+#[cfg(test)]
+pub mod tests;
 
 pub mod prelude {
     pub use crate::network::{*, activation_fn::*, layout::*, params::*, run_results::*};

@@ -59,7 +59,7 @@ impl<T: Real> Default for Eta<T> {
 }
 
 #[test]
-fn test_eta() {
+fn eta_test() {
     assert_eq!(Eta::point_one(), Eta::Const(0.1));
     assert_eq!(Eta::point_zero_one(), Eta::Const(0.01));
 

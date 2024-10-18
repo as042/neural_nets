@@ -145,7 +145,7 @@ impl<'t, T: Real> NetworkTrainer<'t, T> {
 }
 
 #[test]
-fn test_trainer() {
+fn trainer_test() {
     use crate::prelude::*;
 
     let net = Network::builder()

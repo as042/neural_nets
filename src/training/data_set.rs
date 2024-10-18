@@ -165,7 +165,7 @@ impl<T: Clone> DataSetBuilder<T> {
 }
 
 #[test]
-fn new_data_set_test() {
+fn test_new() {
     let data_set1 = DataSet::new(vec![vec![0.1, 0.3], vec![-0.15, 0.2]], vec![vec![0.5, -0.6], vec![-0.2, -0.34]]);
 
     let data_set2 = DataSet {
@@ -179,7 +179,7 @@ fn new_data_set_test() {
 }
 
 #[test]
-fn new_combined_data_set_test() {
+fn test_new_combined() {
     let data_set1 = DataSet::new_combined(vec![(vec![0.1, 0.3], vec![0.5, -0.6]), (vec![-0.15, 0.2], vec![-0.2, -0.34])]);
 
     let data_set2 = DataSet {
@@ -214,7 +214,7 @@ fn test_nth_sample() {
 }
 
 #[test]
-fn test_data_set_builder() {
+fn data_set_builder_test() {
     let data_set1 = DataSet::builder()
         .input(vec![0.1, 0.3])
         .output(vec![0.5, -0.6])
