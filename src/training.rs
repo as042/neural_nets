@@ -25,8 +25,8 @@ impl Network {
             for b in 0..settings.num_batches() {
                 let mut tape = Tape::new();
                 let mut costs = Vec::with_capacity(settings.num_epochs);
+                let vars = params.var_params(&mut tape);
                 for s in 0..settings.batch_size {
-                    let vars = params.var_params(&mut tape);
                     let sample_idx = samples[b + s];
                     let mut res = self.forward_pass(&settings.data_set().nth_input(sample_idx).to_vec(), &vars);
 
@@ -39,8 +39,11 @@ impl Network {
                 for cost in costs[1..].iter() {
                     total_cost = total_cost + *cost;
                 }
+                let two = T::one() + T::one();
+                let ten = two * two * two + two;
+                let avg_cost = total_cost / (ten * ten * ten * ten);
 
-                let full_gradient = total_cost.backprop();
+                let full_gradient = avg_cost.backprop();
                 let grad = full_gradient.wrt_inputs();
 
                 params = Self::adjust_params(grad, settings.clamp_settings(), settings.eta(), e, &params);

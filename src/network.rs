@@ -62,12 +62,10 @@ impl Display for Network {
     }
 }
 
-    use crate::prelude::*;
-    use crate::autodiff::var::Var;
-
 #[test]
 fn simple_network_test() {
-
+    use crate::prelude::*;
+    use crate::autodiff::var::Var;
 
     let layout = Layout::builder()
         .input_layer(5)

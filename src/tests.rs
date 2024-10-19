@@ -26,13 +26,16 @@ fn linear_identity_test() {
 
     let params = net.random_params::<f64>(Seed::Input(1.0));
 
+    let res = net.run(&vec![0.1], &params);
+    println!("res: {:?}", res);
+
     let optimized = net.trainer()
         .data_set(data_set)
         .params(params)
-        .batch_size(10)
-        .num_epochs(100)
+        .batch_size(10000)
+        .num_epochs(2000)
         .weight_max(10.0)
-        .eta(Eta::Decreasing(0.1, 0.01))
+        .eta(Eta::Decreasing(0.1, 0.001))
         .stoch_shuffle_seed(Seed::OS)
         .train();
 
