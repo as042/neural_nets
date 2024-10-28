@@ -126,67 +126,67 @@ impl<T: Real> Params<T> {
     }
 }
 
-#[test]
-fn test_default_params() {
+#[cfg(test)]
+mod tests {
     use crate::prelude::*;
+    use crate::autodiff::tape::*;
 
-    let layout = Layout::builder()
-        .input_layer(1)
-        .feed_forward_layer(ActivationFn::ReLU, 2)
-        .feed_forward_layer(ActivationFn::Linear, 1)
-        .build();
-
-    let params = Params::<f64>::default_params(&layout);
-    let params2 = Params {
-        weights: vec![1.0, 1.0, 1.0, 1.0],
-        biases: vec![1.0, 1.0, 1.0],
-        others: vec![],
-    };
-
-    assert_eq!(params, params2);
-}
-
-#[test]
-fn test_random_params() {
-    use crate::prelude::*;
-
-    let layout = Layout::builder()
-        .input_layer(1)
-        .feed_forward_layer(ActivationFn::ReLU, 1)
-        .feed_forward_layer(ActivationFn::Linear, 1)
-        .build();
-
-    let params = Params::<f64>::random_params(&layout, Seed::Input(1122219.0));
-    let params2 = Params {
-        weights: vec![-0.9399092877283692, -0.3612265856936574],
-        biases: vec![-0.7685036603361368, -0.440182882361114],
-        others: vec![],
-    };
-
-    assert_eq!(params, params2);
-}
-
-#[test]
-fn test_var_params() {
-    use crate::prelude::*;
-
-    let mut tape = Tape::new();
-
-    let layout = Layout::builder()
-        .input_layer(1)
-        .feed_forward_layer(ActivationFn::ReLU, 1)
-        .feed_forward_layer(ActivationFn::Linear, 1)
-        .build();
-
-    let params = Params::<f64>::default_params(&layout);
-
-    let var_params = params.var_params(&mut tape);
-    let var_params2 = Params {
-        weights: vec![tape.new_var(1.0), tape.new_var(1.0)],
-        biases: vec![tape.new_var(1.0), tape.new_var(1.0)],
-        others: vec!(),
-    };
-
-    assert_ne!(var_params, var_params2);
-    assert_eq!(var_params.weights.iter().map(|x| x.val()).collect::<Vec<f64>>(), var_params2.weights.iter().map(|x| x.val()).collect::<Vec<f64>>());
+    #[test]
+    fn test_default_params() {
+        let layout = Layout::builder()
+            .input_layer(1)
+            .feed_forward_layer(ActivationFn::ReLU, 2)
+            .feed_forward_layer(ActivationFn::Linear, 1)
+            .build();
+    
+        let params = Params::<f64>::default_params(&layout);
+        let params2 = Params {
+            weights: vec![1.0, 1.0, 1.0, 1.0],
+            biases: vec![1.0, 1.0, 1.0],
+            others: vec![],
+        };
+    
+        assert_eq!(params, params2);
+    }
+    
+    #[test]
+    fn test_random_params() {    
+        let layout = Layout::builder()
+            .input_layer(1)
+            .feed_forward_layer(ActivationFn::ReLU, 1)
+            .feed_forward_layer(ActivationFn::Linear, 1)
+            .build();
+    
+        let params = Params::<f64>::random_params(&layout, Seed::Input(1122219.0));
+        let params2 = Params {
+            weights: vec![-0.9399092877283692, -0.3612265856936574],
+            biases: vec![-0.7685036603361368, -0.440182882361114],
+            others: vec![],
+        };
+    
+        assert_eq!(params, params2);
+    }
+    
+    #[test]
+    fn test_var_params() {    
+        let mut tape = Tape::new();
+    
+        let layout = Layout::builder()
+            .input_layer(1)
+            .feed_forward_layer(ActivationFn::ReLU, 1)
+            .feed_forward_layer(ActivationFn::Linear, 1)
+            .build();
+    
+        let params = Params::<f64>::default_params(&layout);
+    
+        let var_params = params.var_params(&mut tape);
+        let var_params2 = Params {
+            weights: vec![tape.new_var(1.0), tape.new_var(1.0)],
+            biases: vec![tape.new_var(1.0), tape.new_var(1.0)],
+            others: vec!(),
+        };
+    
+        assert_ne!(var_params, var_params2);
+        assert_eq!(var_params.weights.iter().map(|x| x.val()).collect::<Vec<f64>>(), var_params2.weights.iter().map(|x| x.val()).collect::<Vec<f64>>());
+    }
 }

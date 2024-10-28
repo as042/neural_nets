@@ -2,7 +2,6 @@ pub mod autodiff;
 pub mod network;
 pub mod rng;
 pub mod training;
-#[cfg(test)]
 pub mod tests;
 
 pub mod prelude {

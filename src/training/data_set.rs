@@ -164,69 +164,74 @@ impl<T: Clone> DataSetBuilder<T> {
     }
 }
 
-#[test]
-fn test_new() {
-    let data_set1 = DataSet::new(vec![vec![0.1, 0.3], vec![-0.15, 0.2]], vec![vec![0.5, -0.6], vec![-0.2, -0.34]]);
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-    let data_set2 = DataSet {
-        input_data: vec![0.1, 0.3, -0.15, 0.2],
-        input_sample_starts_and_lengths: vec![(0, 2), (2, 2)],
-        output_data: vec![0.5, -0.6, -0.2, -0.34],
-        output_sample_starts_and_lengths: vec![(0, 2), (2, 2)],
-    };
-
-    assert_eq!(data_set1, data_set2);
-}
-
-#[test]
-fn test_new_combined() {
-    let data_set1 = DataSet::new_combined(vec![(vec![0.1, 0.3], vec![0.5, -0.6]), (vec![-0.15, 0.2], vec![-0.2, -0.34])]);
-
-    let data_set2 = DataSet {
-        input_data: vec![0.1, 0.3, -0.15, 0.2],
-        input_sample_starts_and_lengths: vec![(0, 2), (2, 2)],
-        output_data: vec![0.5, -0.6, -0.2, -0.34],
-        output_sample_starts_and_lengths: vec![(0, 2), (2, 2)],
-    };
-
-    assert_eq!(data_set1, data_set2);
-}
-
-#[test]
-fn test_nth_input() {
-    let data_set = DataSet::new(vec![vec![0.1, 0.3], vec![-0.15, 0.2]], vec![vec![0.5, -0.6], vec![-0.2, -0.34]]);
-
-    assert_eq!(data_set.nth_input(1), [-0.15, 0.2]);
-}
-
-#[test]
-fn test_nth_output() {
-    let data_set = DataSet::new(vec![vec![0.1, 0.3], vec![-0.15, 0.2]], vec![vec![0.5, -0.6], vec![-0.2, -0.34]]);
-
-    assert_eq!(data_set.nth_output(0), [0.5, -0.6]);
-}
-
-#[test]
-fn test_nth_sample() {
-    let data_set = DataSet::new(vec![vec![0.1, 0.3], vec![-0.15, 0.2]], vec![vec![0.5, -0.6], vec![-0.2, -0.34]]);
-
-    assert_eq!(data_set.nth_sample(1), ([-0.15, 0.2].as_slice(), [-0.2, -0.34].as_slice()));
-}
-
-#[test]
-fn data_set_builder_test() {
-    let data_set1 = DataSet::builder()
-        .input(vec![0.1, 0.3])
-        .output(vec![0.5, -0.6])
-        .sample(vec![-0.15, 0.2], vec![-0.2, -0.34])
-        .build();
-
-    let data_set2 = DataSet {
-        input_data: vec![0.1, 0.3, -0.15, 0.2],
-        input_sample_starts_and_lengths: vec![(0, 2), (2, 2)],
-        output_data: vec![0.5, -0.6, -0.2, -0.34],
-        output_sample_starts_and_lengths: vec![(0, 2), (2, 2)],
-    };
-
-    assert_eq!(data_set1, data_set2);
+    #[test]
+    fn test_new() {
+        let data_set1 = DataSet::new(vec![vec![0.1, 0.3], vec![-0.15, 0.2]], vec![vec![0.5, -0.6], vec![-0.2, -0.34]]);
+    
+        let data_set2 = DataSet {
+            input_data: vec![0.1, 0.3, -0.15, 0.2],
+            input_sample_starts_and_lengths: vec![(0, 2), (2, 2)],
+            output_data: vec![0.5, -0.6, -0.2, -0.34],
+            output_sample_starts_and_lengths: vec![(0, 2), (2, 2)],
+        };
+    
+        assert_eq!(data_set1, data_set2);
+    }
+    
+    #[test]
+    fn test_new_combined() {
+        let data_set1 = DataSet::new_combined(vec![(vec![0.1, 0.3], vec![0.5, -0.6]), (vec![-0.15, 0.2], vec![-0.2, -0.34])]);
+    
+        let data_set2 = DataSet {
+            input_data: vec![0.1, 0.3, -0.15, 0.2],
+            input_sample_starts_and_lengths: vec![(0, 2), (2, 2)],
+            output_data: vec![0.5, -0.6, -0.2, -0.34],
+            output_sample_starts_and_lengths: vec![(0, 2), (2, 2)],
+        };
+    
+        assert_eq!(data_set1, data_set2);
+    }
+    
+    #[test]
+    fn test_nth_input() {
+        let data_set = DataSet::new(vec![vec![0.1, 0.3], vec![-0.15, 0.2]], vec![vec![0.5, -0.6], vec![-0.2, -0.34]]);
+    
+        assert_eq!(data_set.nth_input(1), [-0.15, 0.2]);
+    }
+    
+    #[test]
+    fn test_nth_output() {
+        let data_set = DataSet::new(vec![vec![0.1, 0.3], vec![-0.15, 0.2]], vec![vec![0.5, -0.6], vec![-0.2, -0.34]]);
+    
+        assert_eq!(data_set.nth_output(0), [0.5, -0.6]);
+    }
+    
+    #[test]
+    fn test_nth_sample() {
+        let data_set = DataSet::new(vec![vec![0.1, 0.3], vec![-0.15, 0.2]], vec![vec![0.5, -0.6], vec![-0.2, -0.34]]);
+    
+        assert_eq!(data_set.nth_sample(1), ([-0.15, 0.2].as_slice(), [-0.2, -0.34].as_slice()));
+    }
+    
+    #[test]
+    fn data_set_builder_test() {
+        let data_set1 = DataSet::builder()
+            .input(vec![0.1, 0.3])
+            .output(vec![0.5, -0.6])
+            .sample(vec![-0.15, 0.2], vec![-0.2, -0.34])
+            .build();
+    
+        let data_set2 = DataSet {
+            input_data: vec![0.1, 0.3, -0.15, 0.2],
+            input_sample_starts_and_lengths: vec![(0, 2), (2, 2)],
+            output_data: vec![0.5, -0.6, -0.2, -0.34],
+            output_sample_starts_and_lengths: vec![(0, 2), (2, 2)],
+        };
+    
+        assert_eq!(data_set1, data_set2);
+    }
 }

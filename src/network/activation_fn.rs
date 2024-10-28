@@ -110,57 +110,62 @@ impl ActivationFn {
     }    
 }
 
-#[test]
-fn test_sigmoid() {
-    assert_eq!(ActivationFn::sigmoid(0.0), 0.5);
-    assert_eq!((ActivationFn::sigmoid(10f64) * 1E6).round() / 1E6, 0.999955);
-    assert!(ActivationFn::sigmoid(f64::MIN) >= 0.0);
-}
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-#[test]
-fn test_relu() {
-    assert_eq!(ActivationFn::relu(5.0), 5.0);
-    assert_eq!(ActivationFn::relu(f64::MAX / 2.0), f64::MAX / 2.0);
-    assert_eq!(ActivationFn::relu(f64::EPSILON), f64::EPSILON);
-    assert_eq!(ActivationFn::relu(-0.1), 0.0);
-    assert_eq!(ActivationFn::relu(-1000000.0), 0.0);
-}
-
-#[test]
-fn test_gelu() {
-    assert_eq!(ActivationFn::gelu(-7.32), 0.030683066768026346);
-    assert_eq!(ActivationFn::gelu(-2.9), 0.004596567862235712);
-    assert_eq!(ActivationFn::gelu(0.0), 0.0);
-    assert_eq!(ActivationFn::gelu(2.12), 2.087044277682028);
-    assert_eq!(ActivationFn::gelu(3.0), 3.0067693992198983);
-}
-
-#[test]
-fn test_cdf_nd() {
-    assert_eq!(ActivationFn::cdf_nd(-1.0), 0.15864757713595257);
-    assert_eq!(ActivationFn::cdf_nd(0.0), 0.5);
-    assert_eq!(ActivationFn::cdf_nd(1.2), 0.8849676941167681);
-}
-
-#[test]
-fn test_erf() {
-    assert_eq!(ActivationFn::erf(-1.23), -0.919123734092335);
-    assert_eq!(ActivationFn::erf(0.0), 0.0);
-    assert!(ActivationFn::erf(f64::MAX) < 1.01);
-    assert_eq!(ActivationFn::erf(0.29), 0.31828349781690646);
-}
-
-#[test]
-fn test_smooth_relu() {
-    assert!(ActivationFn::smooth_relu(f64::MIN) >= 0.0);
-    assert!(ActivationFn::smooth_relu(f64::MAX).is_infinite());
-    assert_eq!(ActivationFn::smooth_relu(0.0), 2f64.ln());
-}
-
-#[test]
-fn test_eta_relu() {
-    assert_eq!(ActivationFn::eta_relu(0.0), 1.001f64.ln());
-    assert_eq!(ActivationFn::eta_relu(100.0), 100.0);
-    assert!(ActivationFn::eta_relu(-0.12) < 0.0009);
-    assert!(ActivationFn::eta_relu(-100.0) >= 0.0);
+    #[test]
+    fn test_sigmoid() {
+        assert_eq!(ActivationFn::sigmoid(0.0), 0.5);
+        assert_eq!((ActivationFn::sigmoid(10f64) * 1E6).round() / 1E6, 0.999955);
+        assert!(ActivationFn::sigmoid(f64::MIN) >= 0.0);
+    }
+    
+    #[test]
+    fn test_relu() {
+        assert_eq!(ActivationFn::relu(5.0), 5.0);
+        assert_eq!(ActivationFn::relu(f64::MAX / 2.0), f64::MAX / 2.0);
+        assert_eq!(ActivationFn::relu(f64::EPSILON), f64::EPSILON);
+        assert_eq!(ActivationFn::relu(-0.1), 0.0);
+        assert_eq!(ActivationFn::relu(-1000000.0), 0.0);
+    }
+    
+    #[test]
+    fn test_gelu() {
+        assert_eq!(ActivationFn::gelu(-7.32), 0.030683066768026346);
+        assert_eq!(ActivationFn::gelu(-2.9), 0.004596567862235712);
+        assert_eq!(ActivationFn::gelu(0.0), 0.0);
+        assert_eq!(ActivationFn::gelu(2.12), 2.087044277682028);
+        assert_eq!(ActivationFn::gelu(3.0), 3.0067693992198983);
+    }
+    
+    #[test]
+    fn test_cdf_nd() {
+        assert_eq!(ActivationFn::cdf_nd(-1.0), 0.15864757713595257);
+        assert_eq!(ActivationFn::cdf_nd(0.0), 0.5);
+        assert_eq!(ActivationFn::cdf_nd(1.2), 0.8849676941167681);
+    }
+    
+    #[test]
+    fn test_erf() {
+        assert_eq!(ActivationFn::erf(-1.23), -0.919123734092335);
+        assert_eq!(ActivationFn::erf(0.0), 0.0);
+        assert!(ActivationFn::erf(f64::MAX) < 1.01);
+        assert_eq!(ActivationFn::erf(0.29), 0.31828349781690646);
+    }
+    
+    #[test]
+    fn test_smooth_relu() {
+        assert!(ActivationFn::smooth_relu(f64::MIN) >= 0.0);
+        assert!(ActivationFn::smooth_relu(f64::MAX).is_infinite());
+        assert_eq!(ActivationFn::smooth_relu(0.0), 2f64.ln());
+    }
+    
+    #[test]
+    fn test_eta_relu() {
+        assert_eq!(ActivationFn::eta_relu(0.0), 1.001f64.ln());
+        assert_eq!(ActivationFn::eta_relu(100.0), 100.0);
+        assert!(ActivationFn::eta_relu(-0.12) < 0.0009);
+        assert!(ActivationFn::eta_relu(-100.0) >= 0.0);
+    }
 }

@@ -57,42 +57,46 @@ impl Network {
 }
 
 impl Display for Network {
+    #[inline]
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.layout)
     }
 }
 
-#[test]
-fn simple_network_test() {
+#[cfg(test)]
+mod tests {
     use crate::prelude::*;
     use crate::autodiff::var::Var;
 
-    let layout = Layout::builder()
-        .input_layer(5)
-        .feed_forward_layer(ActivationFn::ReLU, 3)
-        .feed_forward_layer(ActivationFn::Linear, 4)
-        .build();
+    #[test]
+    fn simple_network_test() {
+        let layout = Layout::builder()
+            .input_layer(5)
+            .feed_forward_layer(ActivationFn::ReLU, 3)
+            .feed_forward_layer(ActivationFn::Linear, 4)
+            .build();
 
-    let net = Network::new(layout);
+        let net = Network::new(layout);
 
-    let input = vec![0.1, 0.2, 0.3, 0.4, 0.5];
-    let desired_output = vec![0.1, -0.2, 0.3, -0.5];
-    let data_set = DataSet::new(vec![input.clone()], vec![desired_output.clone()]);
-    let params = net.random_params::<f64>(Seed::OS);
+        let input = vec![0.1, 0.2, 0.3, 0.4, 0.5];
+        let desired_output = vec![0.1, -0.2, 0.3, -0.5];
+        let data_set = DataSet::new(vec![input.clone()], vec![desired_output.clone()]);
+        let params = net.random_params::<f64>(Seed::OS);
 
-    let res = net.run(&input, &params);
-    println!("res1: {:?}", res);
+        let res = net.run(&input, &params);
+        println!("res1: {:?}", res);
 
-    let params = net.train::<f64, Var<f64>>(&TrainingSettings {
-        batch_size: 1,
-        num_epochs: 100,
-        cost_fn: CostFn::MSE,
-        clamp_settings: ClampSettings::new(-1.0, 1.0, -1.0, 1.0),
-        eta: Eta::Const(0.1),
-        data_set,
-        stoch_shuffle_seed: Seed::Input(5.0),
-    }, params);
+        let params = net.train::<f64, Var<f64>>(&TrainingSettings {
+            batch_size: 1,
+            num_epochs: 100,
+            cost_fn: CostFn::MSE,
+            clamp_settings: ClampSettings::new(-1.0, 1.0, -1.0, 1.0),
+            eta: Eta::Const(0.1),
+            data_set,
+            stoch_shuffle_seed: Seed::Input(5.0),
+        }, params);
 
-    let res = net.run(&input, &params);
-    println!("res2: {:?}", res);
+        let res = net.run(&input, &params);
+        println!("res2: {:?}", res);
+    }
 }

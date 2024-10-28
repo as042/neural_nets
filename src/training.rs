@@ -6,7 +6,7 @@ pub mod trainer;
 pub mod training_results;
 pub mod training_settings;
 
-use crate::autodiff::{real::{operations::OperateWithReal, Real, real_math::RealMath}, tape::Tape};
+use crate::autodiff::{real::{operations::OperateWithReal, real_math::RealMath, Real}, tape::Tape, var::Var};
 use crate::network::{Network, params::Params};
 use crate::rng::shuffle;
 
@@ -23,34 +23,47 @@ impl Network {
             shuffle(&mut samples, settings.stoch_shuffle_seed);
 
             for b in 0..settings.num_batches() {
-                let mut tape = Tape::new();
-                let mut costs = Vec::with_capacity(settings.num_epochs);
-                let vars = params.var_params(&mut tape);
-                for s in 0..settings.batch_size {
-                    let sample_idx = samples[b + s];
-                    let mut res = self.forward_pass(&settings.data_set().nth_input(sample_idx).to_vec(), &vars);
-
-                    let cost = res.cost(settings.cost_fn(), &settings.data_set.nth_output(sample_idx).to_vec());
-                    costs.push(cost);
-                }
-
-                // combine costs before backprop
-                let mut total_cost = costs[0];
-                for cost in costs[1..].iter() {
-                    total_cost = total_cost + *cost;
-                }
-                let two = T::one() + T::one();
-                let ten = two * two * two + two;
-                let avg_cost = total_cost / (ten * ten * ten * ten);
-
-                let full_gradient = avg_cost.backprop();
-                let grad = full_gradient.wrt_inputs();
-
-                params = Self::adjust_params(grad, settings.clamp_settings(), settings.eta(), e, &params);
+                params = self.per_batch(settings, &samples, &params, e, b);
             }
         }
 
         params
+    }
+
+    #[inline]
+    fn per_batch<'t, T: Real>(&self, settings: &TrainingSettings<'t, T>, samples: &Vec<usize>, params: &Params<T>, epoch: usize, batch: usize) -> Params<T> {
+        let mut tape = Tape::new();
+        let vars = params.var_params(&mut tape);
+
+        let costs = self.get_costs(settings, samples, &vars, batch);
+
+        // combine costs before backprop
+        let mut total_cost = costs[0];
+        for cost in costs[1..].iter() {
+            total_cost = total_cost + *cost;
+        }
+        let two = T::one() + T::one();
+        let ten = two * two * two + two;
+        let avg_cost = total_cost / (ten * ten * ten * ten);
+
+        let full_gradient = avg_cost.backprop();
+        let grad = full_gradient.wrt_inputs();
+
+        Self::adjust_params(grad, settings.clamp_settings(), settings.eta(), epoch, &params)
+    }
+
+    #[inline]
+    fn get_costs<'t, T: Real>(&self, settings: &TrainingSettings<'t, T>, samples: &Vec<usize>, vars: &Params<Var<'t, T>>, batch: usize) -> Vec<Var<'t, T>> {
+        let mut costs = Vec::with_capacity(settings.num_epochs);
+        for s in 0..settings.batch_size {
+            let sample_idx = samples[batch + s];
+            let mut res = self.forward_pass(&settings.data_set().nth_input(sample_idx).to_vec(), vars);
+    
+            let cost = res.cost(settings.cost_fn(), &settings.data_set.nth_output(sample_idx).to_vec());
+            costs.push(cost);
+        }
+
+        costs
     }
 
     /// Adjusts weights and biases according to grad. KNOWN PROBLEM: Large eta value

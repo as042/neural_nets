@@ -73,10 +73,15 @@ impl<T: Real, U: RealMath + OperateWithReal<T>> RunResults<T, U> {
     }
 }
 
-#[test]
-fn cost_test() {
-    assert_eq!(CostFn::mse(&vec![0.5, 0.2, -0.3], &vec![0.4, 0.0, 0.3]), 0.41 / 3.0);
-    assert_eq!(CostFn::rmse(&vec![0.5, 0.2, -0.3], &vec![0.4, 0.0, 0.3]), (0.41 / 3f64).sqrt());
-    assert_eq!(CostFn::mae(&vec![0.5, 0.2, -0.3], &vec![0.4, 0.0, 0.3]), 0.3);
-    assert_eq!((CostFn::MSE.compute(&vec![0.5, 0.2, -0.2], &vec![0.4, 0.0, 0.3]) * 1000f64).round() / 1000.0, 0.1);
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn cost_test() {
+        assert_eq!(CostFn::mse(&vec![0.5, 0.2, -0.3], &vec![0.4, 0.0, 0.3]), 0.41 / 3.0);
+        assert_eq!(CostFn::rmse(&vec![0.5, 0.2, -0.3], &vec![0.4, 0.0, 0.3]), (0.41 / 3f64).sqrt());
+        assert_eq!(CostFn::mae(&vec![0.5, 0.2, -0.3], &vec![0.4, 0.0, 0.3]), 0.3);
+        assert_eq!((CostFn::MSE.compute(&vec![0.5, 0.2, -0.2], &vec![0.4, 0.0, 0.3]) * 1000f64).round() / 1000.0, 0.1);
+    }
 }

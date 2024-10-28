@@ -58,15 +58,20 @@ impl<T: Real> Default for Eta<T> {
     }
 }
 
-#[test]
-fn eta_test() {
-    assert_eq!(Eta::point_one(), Eta::Const(0.1));
-    assert_eq!(Eta::point_zero_one(), Eta::Const(0.01));
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-    assert_eq!(Eta::Const(0.03).unwrap(), (Some(0.03), None));
-    assert_eq!(Eta::Decreasing(0.1, 0.01).unwrap(), (None, Some((0.1, 0.01))));
-
-    assert_eq!(Eta::Const(0.314159).val(1), 0.314159);
-    assert_eq!((Eta::Decreasing(1.0f64, 0.8).val(1) * 10.0).round() / 10.0, 0.2);
-    assert!(Eta::Decreasing(1.0f64, 0.8).val(20) > 0.0 && Eta::Decreasing(1.0f64, 0.8).val(20) < 0.001);
+    #[test]
+    fn eta_test() {
+        assert_eq!(Eta::point_one(), Eta::Const(0.1));
+        assert_eq!(Eta::point_zero_one(), Eta::Const(0.01));
+    
+        assert_eq!(Eta::Const(0.03).unwrap(), (Some(0.03), None));
+        assert_eq!(Eta::Decreasing(0.1, 0.01).unwrap(), (None, Some((0.1, 0.01))));
+    
+        assert_eq!(Eta::Const(0.314159).val(1), 0.314159);
+        assert_eq!((Eta::Decreasing(1.0f64, 0.8).val(1) * 10.0).round() / 10.0, 0.2);
+        assert!(Eta::Decreasing(1.0f64, 0.8).val(20) > 0.0 && Eta::Decreasing(1.0f64, 0.8).val(20) < 0.001);
+    }
 }

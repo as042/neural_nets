@@ -11,6 +11,7 @@ pub struct Tape<T: Real> {
 }
 
 impl<T: Real> Default for Tape<T> {
+    #[inline]
     fn default() -> Self {
         Tape {
             nodes: vec![].into(),

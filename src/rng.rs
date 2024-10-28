@@ -105,45 +105,50 @@ fn real_to_i64<T: Real>(mut x: T) -> i64 {
     val * if sign == T::one() { 1 } else { -1 }
 }
 
-#[test]
-fn test_lehmer_rng() {
-    let s = 123432.0;
-    let s2 = lehmer_rng(s);
-    let s3 = lehmer_rng(s2);
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-    assert_ne!(s, s2);
-    assert_ne!(s2, s3);
-    assert_ne!(s, s3);
-}
-
-#[test]
-fn test_os_seed() {
-    let s: f64 = os_seed();
-
-    std::thread::sleep(std::time::Duration::from_micros(1));
-
-    let s2 = os_seed();
-
-    assert_ne!(s, s2);
-}
-
-#[test]
-fn test_shuffle() {
-    let v1 = vec![0, 1, 2, 3, 4];
-    let mut v2 = v1.clone();
-    shuffle(&mut v2, Seed::Input(1.0));
-
-    assert_ne!(v1, v2);
-    assert_eq!(v1.iter().fold(0, |acc, x| acc + x), v1.iter().fold(0, |acc, x| acc + x));
-}
-
-#[test]
-fn test_real_to_i64() {
-    assert_eq!(real_to_i64(69.0), 69);
-    assert_eq!(real_to_i64(1000012428f64), 1000012428);
-    assert_eq!(real_to_i64(10173480128374f64), 10173480128374);
-    assert_eq!(real_to_i64(-128397.0), -128397);
-    assert_eq!(real_to_i64(-0.0), 0);
-    assert_eq!(real_to_i64(10.5), 10);
-    assert_eq!(real_to_i64(199.9), 199);
+    #[test]
+    fn test_lehmer_rng() {
+        let s = 123432.0;
+        let s2 = lehmer_rng(s);
+        let s3 = lehmer_rng(s2);
+    
+        assert_ne!(s, s2);
+        assert_ne!(s2, s3);
+        assert_ne!(s, s3);
+    }
+    
+    #[test]
+    fn test_os_seed() {
+        let s: f64 = os_seed();
+    
+        std::thread::sleep(std::time::Duration::from_micros(1));
+    
+        let s2 = os_seed();
+    
+        assert_ne!(s, s2);
+    }
+    
+    #[test]
+    fn test_shuffle() {
+        let v1 = vec![0, 1, 2, 3, 4];
+        let mut v2 = v1.clone();
+        shuffle(&mut v2, Seed::Input(1.0));
+    
+        assert_ne!(v1, v2);
+        assert_eq!(v1.iter().fold(0, |acc, x| acc + x), v1.iter().fold(0, |acc, x| acc + x));
+    }
+    
+    #[test]
+    fn test_real_to_i64() {
+        assert_eq!(real_to_i64(69.0), 69);
+        assert_eq!(real_to_i64(1000012428f64), 1000012428);
+        assert_eq!(real_to_i64(10173480128374f64), 10173480128374);
+        assert_eq!(real_to_i64(-128397.0), -128397);
+        assert_eq!(real_to_i64(-0.0), 0);
+        assert_eq!(real_to_i64(10.5), 10);
+        assert_eq!(real_to_i64(199.9), 199);
+    }
 }

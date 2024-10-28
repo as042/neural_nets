@@ -54,20 +54,23 @@ impl Network {
     }
 }
 
-#[test]
-fn test_run() {
+#[cfg(test)]
+mod tests {
     use crate::prelude::*;
 
-    let net = Network::builder()
-        .input_layer(2)
-        .feed_forward_layer(ActivationFn::ReLU, 2)
-        .feed_forward_layer(ActivationFn::Linear, 2)
-        .build();
-
-    let input = vec![0.5, 0.1];
-    let params = net.default_params();
-
-    let res = net.run(&input, &params);
-
-    assert_eq!(res.output(), &vec![4.2, 4.2]);
+    #[test]
+    fn test_run() {
+        let net = Network::builder()
+            .input_layer(2)
+            .feed_forward_layer(ActivationFn::ReLU, 2)
+            .feed_forward_layer(ActivationFn::Linear, 2)
+            .build();
+    
+        let input = vec![0.5, 0.1];
+        let params = net.default_params();
+    
+        let res = net.run(&input, &params);
+    
+        assert_eq!(res.output(), &vec![4.2, 4.2]);
+    }
 }

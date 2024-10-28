@@ -144,6 +144,7 @@ impl<'t, T: Real> Div<T> for Var<'t, T> {
 impl<'t, T: Real> Rem for Var<'t, T> {
     type Output = Self;
 
+    #[inline]
     fn rem(self, rhs: Self) -> Self::Output {
         self.tape.binary_op(T::one(), (-self.val / rhs.val).trunc(), self.index, rhs.index, self.val % rhs.val)
     }
@@ -152,6 +153,7 @@ impl<'t, T: Real> Rem for Var<'t, T> {
 impl<'t, T: Real> Rem<T> for Var<'t, T> {
     type Output = Self;
 
+    #[inline]
     fn rem(self, rhs: T) -> Self::Output {
         self.tape.unary_op(T::one(), self.index, self.val % rhs)
     }
@@ -234,30 +236,37 @@ impl<'t, T: Real> UnaryOperations for Var<'t, T> {
         self.tape.unary_op(T::one() / (cos_val * cos_val), self.index, self.val.tan())
     }
     
+    #[inline]
     fn asin(self) -> Self {
         self.tape.unary_op((T::one() - self.val.powf(T::one() + T::one())).sqrt().recip(), self.index, self.val.asin())
     }
     
+    #[inline]
     fn acos(self) -> Self {
         self.tape.unary_op(-(T::one() - self.val.powf(T::one() + T::one())).sqrt().recip(), self.index, self.val.acos())
     }
     
+    #[inline]
     fn atan(self) -> Self {
         self.tape.unary_op((self.val.powf(T::one() + T::one()) + T::one()).recip(), self.index, self.val.atan())
     }
     
+    #[inline]
     fn exp_m1(self) -> Self {
         self.tape.unary_op(self.val.exp(), self.index, self.val.exp_m1())
     }
     
+    #[inline]
     fn ln_1p(self) -> Self {
         self.tape.unary_op((self.val + T::one()).recip(), self.index, self.val.ln_1p())
     }
     
+    #[inline]
     fn sinh(self) -> Self {
         self.tape.unary_op(self.val.cosh(), self.index, self.val.sinh())
     }
     
+    #[inline]
     fn cosh(self) -> Self {
         self.tape.unary_op(self.val.sinh(), self.index, self.val.cosh())
     }
@@ -270,30 +279,37 @@ impl<'t, T: Real> UnaryOperations for Var<'t, T> {
         self.tape.unary_op(four * (twox).exp() / ((twox).exp() + T::one()).powf(two), self.index, self.val.tanh())
     }
     
+    #[inline]
     fn asinh(self) -> Self {
         self.tape.unary_op((self.val.powf(T::one() + T::one()) + T::one()).sqrt().recip(), self.index, self.val.asinh())
     }
     
+    #[inline]
     fn acosh(self) -> Self {
         self.tape.unary_op(((self.val - T::one()).sqrt() * (self.val + T::one()).sqrt()).recip(), self.index, self.val.acosh())
     }
     
+    #[inline]
     fn atanh(self) -> Self {
         self.tape.unary_op((T::one() - self.val.powf(T::one() + T::one())).recip(), self.index, self.val.atanh())
     }
     
+    #[inline]
     fn trunc(self) -> Self {
         self.tape.unary_op(T::zero(), self.index, self.val.trunc())
     }
     
+    #[inline]
     fn floor(self) -> Self {
         self.tape.unary_op(T::zero(), self.index, self.val.floor())
     }
     
+    #[inline]
     fn ceil(self) -> Self {
         self.tape.unary_op(T::zero(), self.index, self.val.ceil())
     }
     
+    #[inline]
     fn round(self) -> Self {
         self.tape.unary_op(T::zero(), self.index, self.val.round())
     }
@@ -345,132 +361,137 @@ impl<'t, T: Real> BinaryOperations<Var<'t, T>, Var<'t, T>> for T {
 impl<'t, T: Real> OperateWithReal<T> for Var<'t, T> {
 }
 
-#[test]
-fn one_input_test() {
-    let tape = Tape::new();
-    let x = tape.new_var(-100.0);
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-    // z = xx + x
-    let z = x * x + x;
-    let grad = z.backprop();
+    #[test]
+    fn one_input_test() {
+        let tape = Tape::new();
+        let x = tape.new_var(-100.0);
 
-    assert_eq!(grad.wrt_inputs(), [-199.0]);
-}
+        // z = xx + x
+        let z = x * x + x;
+        let grad = z.backprop();
 
-#[test]
-fn basic_test() {
-    let tape: Tape<f64> = Tape::default();
-    let x = tape.new_var(1.0);
-    let y = tape.new_var(1.0);
+        assert_eq!(grad.wrt_inputs(), [-199.0]);
+    }
 
-    // -2x + xxxy + 2y
-    let z = x * -2.0 + x * x * x * y + y * 2.0;
-    let grad = z.backprop();
+    #[test]
+    fn basic_test() {
+        let tape: Tape<f64> = Tape::default();
+        let x = tape.new_var(1.0);
+        let y = tape.new_var(1.0);
 
-    println!("full grad: {:?}", grad.full());
-    println!("grad: {:?}", grad.wrt_inputs());
-    println!("dz/dx of z = -2x + x^3 * y + 2y at x=1.0, y=1.0 is {}", grad.wrt(x));
-    println!("dz/dy of z = -2x + x^3 * y + 2y at x=1.0, y=1.0 is {}", grad.wrt(y));
-    
-    assert_eq!(grad.wrt_inputs(), [1.0, 3.0]);
-}
+        // -2x + xxxy + 2y
+        let z = x * -2.0 + x * x * x * y + y * 2.0;
+        let grad = z.backprop();
 
-#[test]
-fn basic_arith_test() {
-    let tape = Tape::new();
-    let x = tape.new_var(2.0);
-    let y = tape.new_var(3.0);
+        println!("full grad: {:?}", grad.full());
+        println!("grad: {:?}", grad.wrt_inputs());
+        println!("dz/dx of z = -2x + x^3 * y + 2y at x=1.0, y=1.0 is {}", grad.wrt(x));
+        println!("dz/dy of z = -2x + x^3 * y + 2y at x=1.0, y=1.0 is {}", grad.wrt(y));
+        
+        assert_eq!(grad.wrt_inputs(), [1.0, 3.0]);
+    }
 
-    // z = -x + y(x - 0.5) + y/x - 2x/(5y - 1) - 3y + 7
-    let z = -x + (x - 0.5) * y + y / x - x * 2.0 / (y * 5.0 - 1.0) - y * 3.0 + 7.0;
-    let grad = z.backprop();
+    #[test]
+    fn basic_arith_test() {
+        let tape = Tape::new();
+        let x = tape.new_var(2.0);
+        let y = tape.new_var(3.0);
 
-    println!("full grad: {:?}", grad.full());
+        // z = -x + y(x - 0.5) + y/x - 2x/(5y - 1) - 3y + 7
+        let z = -x + (x - 0.5) * y + y / x - x * 2.0 / (y * 5.0 - 1.0) - y * 3.0 + 7.0;
+        let grad = z.backprop();
 
-    assert_eq!(grad.wrt_inputs().iter().map(|x| (x * 1E5f64).round() / 1E5).collect::<Vec<f64>>(), [1.10714, -0.89796]);
-}
+        println!("full grad: {:?}", grad.full());
 
-#[test]
-fn powf_test() {
-    let tape = Tape::new();
-    let x = tape.new_var(-1.0);
-    let y = tape.new_var(2.0);
+        assert_eq!(grad.wrt_inputs().iter().map(|x| (x * 1E5f64).round() / 1E5).collect::<Vec<f64>>(), [1.10714, -0.89796]);
+    }
 
-    // z = x^y - y^x + (2x)^-y
-    let z = x.powf(y) - y.powf(x) + (x * 2.0).powf(-y);
-    let grad = z.backprop();
+    #[test]
+    fn powf_test() {
+        let tape = Tape::new();
+        let x = tape.new_var(-1.0);
+        let y = tape.new_var(2.0);
 
-    // grad wrt y is nan
-    assert_eq!((grad.wrt(x) * 1E5f64).round() / 1E5, -1.84657);
-}
+        // z = x^y - y^x + (2x)^-y
+        let z = x.powf(y) - y.powf(x) + (x * 2.0).powf(-y);
+        let grad = z.backprop();
 
-#[test]
-fn log_test() {
-    let tape = Tape::new();
-    let x = tape.new_var(3.0);
-    let y = tape.new_var(5.0);
+        // grad wrt y is nan
+        assert_eq!((grad.wrt(x) * 1E5f64).round() / 1E5, -1.84657);
+    }
 
-    // z = log_y(x) + y*log_2(x) + x*log_10(y) + xy*ln(x + y)
-    let z = x.log(y) + y * x.log2() + x * y.log10() + x * y * (x + y).ln();
-    let grad = z.backprop();
+    #[test]
+    fn log_test() {
+        let tape = Tape::new();
+        let x = tape.new_var(3.0);
+        let y = tape.new_var(5.0);
 
-    assert_eq!(grad.wrt_inputs().iter().map(|x| (x * 1E5f64).round() / 1E5).collect::<Vec<f64>>(), [15.58278, 9.87404]);
-}
+        // z = log_y(x) + y*log_2(x) + x*log_10(y) + xy*ln(x + y)
+        let z = x.log(y) + y * x.log2() + x * y.log10() + x * y * (x + y).ln();
+        let grad = z.backprop();
 
-#[test]
-fn trig_test() {
-    let tape = Tape::new();
-    let x = tape.new_var(3.141);
-    let y = tape.new_var(2.712);
+        assert_eq!(grad.wrt_inputs().iter().map(|x| (x * 1E5f64).round() / 1E5).collect::<Vec<f64>>(), [15.58278, 9.87404]);
+    }
 
-    // z = sin(2xy)*sin(cos(y))*tan(y) + 1/tan(x)
-    let z = (x * y * 2.0).sin() * y.cos().sin() * y.tan() + x.tan().recip();
-    let grad = z.backprop();
+    #[test]
+    fn trig_test() {
+        let tape = Tape::new();
+        let x = tape.new_var(3.141);
+        let y = tape.new_var(2.712);
 
-    assert_eq!(grad.wrt_inputs().iter().map(|x| (x * 1E3f64).round() / 1E3).collect::<Vec<f64>>(), [-2847070.909, 0.269]);
-}
+        // z = sin(2xy)*sin(cos(y))*tan(y) + 1/tan(x)
+        let z = (x * y * 2.0).sin() * y.cos().sin() * y.tan() + x.tan().recip();
+        let grad = z.backprop();
 
-#[test]
-fn three_input_test() {
-    let tape = Tape::new();
-    let x = tape.new_var(1.5);
-    let y = tape.new_var(3.0);
-    let a = tape.new_var(4.0);
+        assert_eq!(grad.wrt_inputs().iter().map(|x| (x * 1E3f64).round() / 1E3).collect::<Vec<f64>>(), [-2847070.909, 0.269]);
+    }
 
-    // z = x^2 + ya + a 
-    let z = x.powf(2.0) + y * a + a;
-    let grad = z.backprop();
+    #[test]
+    fn three_input_test() {
+        let tape = Tape::new();
+        let x = tape.new_var(1.5);
+        let y = tape.new_var(3.0);
+        let a = tape.new_var(4.0);
 
-    assert_eq!(grad.wrt_inputs(), [3.0, 4.0, 4.0]);
-}
+        // z = x^2 + ya + a 
+        let z = x.powf(2.0) + y * a + a;
+        let grad = z.backprop();
 
-#[test]
-fn complex_test() {
-    let tape = Tape::new();
-    let x = tape.new_var(2.1);
-    let y = tape.new_var(8.03);
-    let a = tape.new_var(3.912);
-    let b = tape.new_var(0.13);
-    let c = tape.new_var(5.58);
+        assert_eq!(grad.wrt_inputs(), [3.0, 4.0, 4.0]);
+    }
 
-    // z = log_c^x((1 / a) / (1 / b) + 50) + y*sin(a + x) + 0.3b*tan^2(x + y + a + b + c) / log_2(c + b^y)
-    let z = ((a.recip() / b.recip() + 50.0).log(c)).powf(x) + y * (a + x).sin() + b * 0.3 * (x + y + a + b + c).tan().powf(2.0) / (c + b.powf(y)).log2();
-    let grad = z.backprop();
+    #[test]
+    fn complex_test() {
+        let tape = Tape::new();
+        let x = tape.new_var(2.1);
+        let y = tape.new_var(8.03);
+        let a = tape.new_var(3.912);
+        let b = tape.new_var(0.13);
+        let c = tape.new_var(5.58);
 
-    assert_eq!(grad.wrt_inputs().iter().map(|x| (x * 1E5f64).round() / 1E5).collect::<Vec<f64>>(), 
-        [12.46499, -0.16416, 7.83974, 0.31315, -1.12997]);
-    assert_eq!(grad.full().len(), 28);
-}
+        // z = log_c^x((1 / a) / (1 / b) + 50) + y*sin(a + x) + 0.3b*tan^2(x + y + a + b + c) / log_2(c + b^y)
+        let z = ((a.recip() / b.recip() + 50.0).log(c)).powf(x) + y * (a + x).sin() + b * 0.3 * (x + y + a + b + c).tan().powf(2.0) / (c + b.powf(y)).log2();
+        let grad = z.backprop();
 
-#[test]
-fn f32_test() {
-    let tape = Tape::new();
-    let x = tape.new_var(2f32);
-    let y = tape.new_var(4f32);
+        assert_eq!(grad.wrt_inputs().iter().map(|x| (x * 1E5f64).round() / 1E5).collect::<Vec<f64>>(), 
+            [12.46499, -0.16416, 7.83974, 0.31315, -1.12997]);
+        assert_eq!(grad.full().len(), 28);
+    }
 
-    // log_x(1.5) + 2^y
-    let z = 1.5.log(x) + 2.0.powf(y);
-    let grad = z.backprop();
+    #[test]
+    fn f32_test() {
+        let tape = Tape::new();
+        let x = tape.new_var(2f32);
+        let y = tape.new_var(4f32);
 
-    assert_eq!(grad.wrt_inputs().iter().map(|x| (x * 1E5).round() / 1E5).collect::<Vec<f32>>(), [-0.42196, 11.09036]);
+        // log_x(1.5) + 2^y
+        let z = 1.5.log(x) + 2.0.powf(y);
+        let grad = z.backprop();
+
+        assert_eq!(grad.wrt_inputs().iter().map(|x| (x * 1E5).round() / 1E5).collect::<Vec<f32>>(), [-0.42196, 11.09036]);
+    }
 }

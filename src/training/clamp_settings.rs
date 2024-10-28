@@ -43,8 +43,13 @@ impl<T: Real> ClampSettings<T> {
     }
 }
 
-#[test]
-#[should_panic]
-fn test_new() {
-    ClampSettings::new(1.0, 0.5, 0.0, 1.0);
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    #[should_panic]
+    fn test_new() {
+        ClampSettings::new(1.0, 0.5, 0.0, 1.0);
+    }
 }
