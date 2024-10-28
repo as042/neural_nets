@@ -92,3 +92,46 @@ impl Network {
         Params::new(new_weights, new_biases, Vec::default())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{autodiff::tape::Tape, prelude::*};
+
+    #[test]
+    fn test_get_costs() {
+        let layout = Layout::builder()
+            .input_layer(2)
+            .feed_forward_layer(ActivationFn::SiLU, 2)
+            .feed_forward_layer(ActivationFn::Linear, 2)
+            .build();
+
+        let net = Network::new(layout);
+
+        let data_set = DataSet::builder()
+            .sample(vec![0.2, 0.1], vec![-0.3, 0.6])
+            .sample(vec![-0.82, 0.8], vec![0.6, 0.4])
+            .sample(vec![0.27, 0.55], vec![-0.21, -0.5])
+            .sample(vec![0.235, -0.34], vec![0.8, 0.37])
+            .sample(vec![-0.9, 0.27], vec![0.5, -0.6])
+            .sample(vec![-0.1, -0.8], vec![-0.74, 0.25])
+            .build();
+
+        let params = net.random_params(Seed::Input(100.0));
+
+        let settings = TrainingSettings {
+            batch_size: 3,
+            num_epochs: 2,
+            cost_fn: CostFn::MAE,
+            clamp_settings: ClampSettings::NO_CLAMP,
+            eta: Eta::point_one(),
+            data_set: data_set,
+            stoch_shuffle_seed: Seed::Input(100.0),
+        };
+
+        let samples = vec![1, 3, 0, 5, 4, 2];
+        let mut tape = Tape::new();
+        let vars = params.var_params(&mut tape);
+
+        let costs = net.get_costs(&settings, &samples, &vars, 0);
+    }
+}

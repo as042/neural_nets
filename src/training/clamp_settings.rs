@@ -9,6 +9,13 @@ pub struct ClampSettings<T: Real> {
 }
 
 impl<T: Real> ClampSettings<T> {
+    pub const NO_CLAMP: Self = ClampSettings {
+        weight_min: T::MIN,
+        weight_max: T::MAX,
+        bias_min: T::MIN,
+        bias_max: T::MAX,
+    };
+
     #[inline]
     pub fn new(weight_min: T, weight_max: T, bias_min: T, bias_max: T) -> Self {
         if weight_max <= weight_min { panic!("Weight max must be greater than weight min") };
