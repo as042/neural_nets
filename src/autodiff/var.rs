@@ -494,4 +494,32 @@ mod tests {
 
         assert_eq!(grad.wrt_inputs().iter().map(|x| (x * 1E5).round() / 1E5).collect::<Vec<f32>>(), [-0.42196, 11.09036]);
     }
+
+    #[test]
+    fn pretty_much_everything_test() {
+        let tape = Tape::new();
+        let a = tape.new_var(3.912);
+        let b = tape.new_var(0.13);
+        let c = tape.new_var(0.9);
+
+        let z = a.recip() - b.signum() + c.abs() - a.sin() + a*b*c*c - b.floor() + (a + b + a*c).ceil() + b.trunc() + a.sinh() + b.asin() + 
+            c.acos() + a.atan() - (a + c + 2.0).acosh() + (-b*b).atanh() + b.cos() + (c*0.5).tan() + (a.exp() + (a*b + c - 0.21).exp2() - b.exp_m1()).round() -
+            (c * 1.1).ln() - b.ln_1p() + (a + c + 3.12).cbrt().log10()*b.log2() + (a*2.19).powf(b - c) - b.log(a) - a % b + c % a - b % (a*c) + a + 1E99;
+
+        let grad1 = z.backprop();
+
+        let tape = Tape::new();
+        let a = tape.new_var(1.9482);
+        let b = tape.new_var(0.999);
+        let c = tape.new_var(0.10092);
+
+        let z = a.recip() - b.signum() + c.abs() - a.sin() + a*b*c*c - b.floor() + (a + b + a*c).ceil() + b.trunc() + a.sinh() + b.asin() + 
+            c.acos() + a.atan() - (a + c + 2.0).acosh() + (-b*b).atanh() + b.cos() + (c*0.5).tan() + (a.exp() + (a*b + c - 0.21).exp2() - b.exp_m1()).round() -
+            (c * 1.1).ln() - b.ln_1p() + (a + c + 3.12).cbrt().log10()*b.log2() + (a*2.19).powf(b - c) - b.log(a) - a % b + c % a - b % (a*c) + a + 1E99;
+
+        let grad2 = z.backprop();
+
+        assert_eq!(grad1.wrt_inputs().iter().map(|x| (x * 1E5).round() / 1E5).collect::<Vec<f64>>(), [25.30827, 30.00121, -0.48622]);
+        assert_eq!(grad2.wrt_inputs().iter().map(|x| (x * 1E5).round() / 1E5).collect::<Vec<f64>>(), [5.84803, -475.02336, -3.87289]);
+    }
 }

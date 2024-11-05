@@ -133,5 +133,8 @@ mod tests {
         let vars = params.var_params(&mut tape);
 
         let costs = net.get_costs(&settings, &samples, &vars, 0);
+        let costs_not_var = costs.iter().map(|x| x.val()).collect::<Vec<f64>>();
+
+        // assert_eq!(costs_not_var, [1.0]);
     }
 }

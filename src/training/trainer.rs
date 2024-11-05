@@ -28,12 +28,7 @@ impl<'t, T: Real> NetworkTrainer<'t, T> {
             batch_size: None,
             num_epochs: None,
             cost_fn: CostFn::MSE,
-            clamp_settings: ClampSettings {
-                weight_min: T::MIN,
-                weight_max: T::MAX,
-                bias_min: T::MIN,
-                bias_max: T::MAX,
-            },
+            clamp_settings: ClampSettings::NO_CLAMP,
             eta: Eta::point_one(),
             data_set: None,
             stoch_shuffle_seed: Seed::OS,
