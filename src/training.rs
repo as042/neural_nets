@@ -6,7 +6,7 @@ pub mod trainer;
 pub mod training_results;
 pub mod training_settings;
 
-use crate::autodiff::{real::{operations::OperateWithReal, real_math::RealMath, Real}, tape::Tape, var::Var};
+use crate::{autodiff::{real::{operations::OperateWithReal, real_math::RealMath, Real}, tape::Tape, var::Var}, rng::i64_to_real};
 use crate::network::{Network, params::Params};
 use crate::rng::shuffle;
 
@@ -42,9 +42,8 @@ impl Network {
         for cost in costs[1..].iter() {
             total_cost = total_cost + *cost;
         }
-        let two = T::one() + T::one();
-        let ten = two * two * two + two;
-        let avg_cost = total_cost / (ten * ten * ten * ten);
+
+        let avg_cost = total_cost / i64_to_real::<T>(settings.batch_size as i64);
 
         let full_gradient = avg_cost.backprop();
         let grad = full_gradient.wrt_inputs();
@@ -101,22 +100,22 @@ mod tests {
     fn test_get_costs() {
         let layout = Layout::builder()
             .input_layer(2)
-            .feed_forward_layer(ActivationFn::SiLU, 2)
+            .feed_forward_layer(ActivationFn::ReLU, 2)
             .feed_forward_layer(ActivationFn::Linear, 2)
             .build();
 
         let net = Network::new(layout);
 
         let data_set = DataSet::builder()
-            .sample(vec![0.2, 0.1], vec![-0.3, 0.6])
-            .sample(vec![-0.82, 0.8], vec![0.6, 0.4])
+            .sample(vec![1.0, 1.0], vec![0.5, 0.5]) // this one
+            .sample(vec![0.0, 0.0], vec![1.0, 1.0]) // this one
             .sample(vec![0.27, 0.55], vec![-0.21, -0.5])
-            .sample(vec![0.235, -0.34], vec![0.8, 0.37])
+            .sample(vec![1.0, 0.0], vec![1.0, 0.0]) // and this one
             .sample(vec![-0.9, 0.27], vec![0.5, -0.6])
             .sample(vec![-0.1, -0.8], vec![-0.74, 0.25])
             .build();
 
-        let params = net.random_params(Seed::Input(100.0));
+        let params = net.default_params();
 
         let settings = TrainingSettings {
             batch_size: 3,
@@ -124,7 +123,7 @@ mod tests {
             cost_fn: CostFn::MAE,
             clamp_settings: ClampSettings::NO_CLAMP,
             eta: Eta::point_one(),
-            data_set: data_set,
+            data_set,
             stoch_shuffle_seed: Seed::Input(100.0),
         };
 
@@ -135,6 +134,77 @@ mod tests {
         let costs = net.get_costs(&settings, &samples, &vars, 0);
         let costs_not_var = costs.iter().map(|x| x.val()).collect::<Vec<f64>>();
 
-        // assert_eq!(costs_not_var, [1.0]);
+        assert_eq!(costs_not_var, [2.0, 4.5, 6.5]);
+    }
+
+    #[test]
+    fn test_adjust_params() {
+        let layout = Layout::builder()
+            .input_layer(2)
+            .feed_forward_layer(ActivationFn::Linear, 2)
+            .feed_forward_layer(ActivationFn::Linear, 2)
+            .build();
+
+        let params = Params::default_params(&layout);
+        let grad = [1.0, -1.0, 2.0, -1.0, -2.0, 100.0, -10.0, 11.0, 23.0, -5.1, 1.1, -0.4];
+
+        let new_params = Network::adjust_params(&grad, &ClampSettings::NO_CLAMP, &Eta::point_one(), 0, &params);
+
+        assert_eq!(new_params.weights().iter().map(|x| (x * 100f64).round() / 100.0).collect::<Vec<f64>>(), &[0.9, 1.1, 0.8, 1.1, 1.2, -9.0, 2.0, -0.1]);
+        assert_eq!(new_params.biases().iter().map(|x| (x * 100f64).round() / 100.0).collect::<Vec<f64>>(), &[-1.3, 1.51, 0.89, 1.04])
+    }
+
+    #[test]
+    fn test_per_batch() {
+        let layout = Layout::builder()
+            .input_layer(2)
+            .feed_forward_layer(ActivationFn::ReLU, 2)
+            .feed_forward_layer(ActivationFn::Linear, 2)
+            .build();
+
+        let net = Network::new(layout);
+
+        let data_set = DataSet::builder()
+            .sample(vec![1.0, 1.0], vec![0.5, 1E4]) // this one
+            .sample(vec![0.0, 0.0], vec![1.0, 1.0]) // this one
+            .sample(vec![0.27, 0.55], vec![-0.21, std::f64::NAN])
+            .sample(vec![1.0, 0.0], vec![1.0, 0.0]) // and this one
+            .sample(vec![-0.9, 0.27], vec![std::f64::NAN, -0.6])
+            .sample(vec![-0.1, -0.8], vec![-0.74, std::f64::NAN])
+            .build();
+
+        let params = net.default_params();
+
+        let settings = TrainingSettings {
+            batch_size: 3,
+            num_epochs: 2,
+            cost_fn: CostFn::MAE,
+            clamp_settings: ClampSettings::NO_CLAMP,
+            eta: Eta::point_one(),
+            data_set,
+            stoch_shuffle_seed: Seed::Input(100.0),
+        };
+
+        let samples = vec![1, 3, 0, 5, 4, 2];
+
+        let mut res = net.run(&vec![1.0, 1.0], &params);
+        let cost1 = res.cost(&CostFn::MAE, &vec![0.5, 1E4]);
+        let mut res = net.run(&vec![1.0, 1.0], &params);
+        let cost2 = res.cost(&CostFn::MAE, &vec![0.5, 1E4]);
+        let mut res = net.run(&vec![1.0, 1.0], &params);
+        let cost3 = res.cost(&CostFn::MAE, &vec![0.5, 1E4]);
+
+        let new_params = net.per_batch(&settings, &samples, &params, 0, 0);
+
+        let mut res = net.run(&vec![1.0, 1.0], &new_params);
+        let cost1_2 = res.cost(&CostFn::MAE, &vec![0.5, 1E4]);
+        let mut res = net.run(&vec![1.0, 1.0], &new_params);
+        let cost2_2 = res.cost(&CostFn::MAE, &vec![0.5, 1E4]);
+        let mut res = net.run(&vec![1.0, 1.0], &new_params);
+        let cost3_2 = res.cost(&CostFn::MAE, &vec![0.5, 1E4]);
+
+        assert!(cost1_2 < cost1);
+        assert!(cost2_2 < cost2);
+        assert!(cost3_2 < cost3);
     }
 }

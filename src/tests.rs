@@ -1,7 +1,6 @@
 #![cfg(test)]
 use crate::prelude::*;
 
-#[allow(unused)]
 fn identity_data_set() -> DataSet<f64> {
     let mut data_set = DataSet::builder();
 

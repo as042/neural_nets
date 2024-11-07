@@ -71,6 +71,6 @@ mod tests {
     
         let res = net.run(&input, &params);
     
-        assert_eq!(res.output(), &vec![4.2, 4.2]);
+        assert_eq!(res.output(), &[4.2, 4.2]);
     }
 }

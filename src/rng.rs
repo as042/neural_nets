@@ -28,30 +28,7 @@ pub fn lehmer_rng<T: Real>(state: T) -> T {
 pub fn os_seed<T: Real>() -> T {
     let system_time = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_nanos();
 
-    let two = T::one() + T::one();
-    let ten = two * two * two + two;
-    let mut val = T::zero();
-    for d in system_time.to_string().chars().map(|d| d.to_digit(10).unwrap()).rev().enumerate() {
-        let mut ten_power = T::one();
-        for _ in 0..d.0 {
-            ten_power = ten_power * ten;
-        }
-        val = val + ten_power * match d.1 {
-            0 => T::zero(),
-            1 => T::one(),
-            2 => two,
-            3 => two + T::one(),
-            4 => two + two,
-            5 => two + two + T::one(),
-            6 => ten - two - two,
-            7 => ten - two - T::one(),
-            8 => ten - two,
-            9 => ten - T::one(),
-            _ => panic!("Invalid digit"),
-        };
-    }
-
-    val
+    i64_to_real(system_time as i64)
 }
 
 #[inline]
@@ -73,7 +50,35 @@ pub fn shuffle<T: Real>(vec: &mut Vec<usize>, seed: Seed<T>) {
 }
 
 #[inline]
-fn real_to_i64<T: Real>(mut x: T) -> i64 {
+pub(crate) fn i64_to_real<T: Real>(x: i64) -> T {
+    let two = T::one() + T::one();
+    let ten = two * two * two + two;
+    let mut val = T::zero();
+    for d in x.abs().to_string().chars().map(|d| d.to_digit(10).unwrap()).rev().enumerate() {
+        let mut ten_power = T::one();
+        for _ in 0..d.0 {
+            ten_power = ten_power * ten;
+        }
+        val = val + ten_power * match d.1 {
+            0 => T::zero(),
+            1 => T::one(),
+            2 => two,
+            3 => two + T::one(),
+            4 => two + two,
+            5 => two + two + T::one(),
+            6 => ten - two - two,
+            7 => ten - two - T::one(),
+            8 => ten - two,
+            9 => ten - T::one(),
+            _ => panic!("Invalid digit"),
+        };
+    }
+    
+    val * if x.signum() == 1 { T::one() } else { T::one() - two }
+}
+
+#[inline]
+pub(crate) fn real_to_i64<T: Real>(mut x: T) -> i64 {
     let two = T::one() + T::one();
     let ten = two * two * two + two;    
 
@@ -139,6 +144,17 @@ mod tests {
     
         assert_ne!(v1, v2);
         assert_eq!(v1.iter().fold(0, |acc, x| acc + x), v1.iter().fold(0, |acc, x| acc + x));
+    }
+
+    #[test]
+    fn test_i64_to_real() {
+        assert_eq!(i64_to_real::<f64>(69), 69.0);
+        assert_eq!(i64_to_real::<f64>(1000012428), 1000012428.0);
+        assert_eq!(i64_to_real::<f64>(10173480128374), 10173480128374.0);
+        assert_eq!(i64_to_real::<f64>(-128397), -128397.0);
+        assert_eq!(i64_to_real::<f64>(-0), 0.0);
+        assert_eq!(i64_to_real::<f64>(10), 10.0);
+        assert_eq!(i64_to_real::<f64>(199), 199.0);
     }
     
     #[test]
