@@ -1,29 +1,37 @@
 use crate::autodiff::real::Real;
+use crate::network::params::Params;
 
 /// The data returned after training a `Network`.
 #[derive(Clone, Debug, PartialEq, PartialOrd)]
 pub struct TrainingResults<T: Real> {
-    pub(crate) grad: Vec<T>,
-    pub(crate) output: Vec<T>,
-    pub(crate) cost: T,
+    pub(crate) params: Params<T>,
+    pub(crate) all_costs: Vec<Vec<Vec<T>>>,
+    pub(crate) avg_costs: Vec<Vec<T>>,
+    pub(crate) all_grads: Vec<Vec<Vec<T>>>,
 }
 
 impl<T: Real> TrainingResults<T> {
-    /// Returns the grad of the training data.
+    /// Returns the new, optimized params.
     #[inline]
-    pub fn grad(&self) -> &Vec<T> {
-        &self.grad
+    pub fn params(&self) -> &Params<T> {
+        &self.params
     }
 
-    /// Returns the output of the training data.
+    /// Returns all costs generated during training, organized by epoch then batch.
     #[inline]
-    pub fn output(&self) -> &Vec<T> {
-        &self.output
+    pub fn all_costs(&self) -> &Vec<Vec<Vec<T>>> {
+        &self.all_costs
     }
 
-    /// Returns the cost of the training data.
+    /// Returns the average cost of each batch generated during training, organized by epoch.
     #[inline]
-    pub fn cost(&self) -> T {
-        self.cost
+    pub fn avg_costs(&self) -> &Vec<Vec<T>> {
+        &self.avg_costs
     }
+
+    /// Returns all grads generated during training, organized by epoch.
+    #[inline]
+    pub fn all_grads(&self) -> &Vec<Vec<Vec<T>>> {
+        &self.all_grads
+    }        
 }
