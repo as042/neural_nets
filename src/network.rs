@@ -66,7 +66,6 @@ impl Display for Network {
 #[cfg(test)]
 mod tests {
     use crate::prelude::*;
-    use crate::autodiff::var::Var;
 
     #[test]
     fn simple_network_test() {
@@ -86,7 +85,7 @@ mod tests {
         let res = net.run(&input, &params);
         println!("res1: {:?}", res);
 
-        let params = net.train::<f64, Var<f64>>(&TrainingSettings {
+        let train_res = net.train::<f64>(&TrainingSettings {
             batch_size: 1,
             num_epochs: 100,
             cost_fn: CostFn::MSE,
@@ -96,7 +95,7 @@ mod tests {
             stoch_shuffle_seed: Seed::Input(5.0),
         }, params);
 
-        let res = net.run(&input, &params);
+        let res = net.run(&input, &train_res.params());
         println!("res2: {:?}", res);
     }
 }

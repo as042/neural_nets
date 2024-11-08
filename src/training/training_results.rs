@@ -1,13 +1,14 @@
 use crate::autodiff::real::Real;
 use crate::network::params::Params;
+use super::i64_to_real;
 
 /// The data returned after training a `Network`.
 #[derive(Clone, Debug, PartialEq, PartialOrd)]
 pub struct TrainingResults<T: Real> {
-    pub(crate) params: Params<T>,
-    pub(crate) all_costs: Vec<Vec<Vec<T>>>,
-    pub(crate) avg_costs: Vec<Vec<T>>,
-    pub(crate) all_grads: Vec<Vec<Vec<T>>>,
+    pub(super) params: Params<T>,
+    pub(super) all_costs: Vec<Vec<Vec<T>>>,
+    pub(super) avg_costs: Vec<Vec<T>>,
+    pub(super) all_grads: Vec<Vec<Vec<T>>>,
 }
 
 impl<T: Real> TrainingResults<T> {
@@ -33,5 +34,11 @@ impl<T: Real> TrainingResults<T> {
     #[inline]
     pub fn all_grads(&self) -> &Vec<Vec<Vec<T>>> {
         &self.all_grads
-    }        
+    }       
+
+    /// Returns the average cost for each epoch.
+    #[inline]
+    pub fn epoch_cost(&self) -> Vec<T> {
+        self.avg_costs.iter().map(|x| x.iter().fold(T::zero(), |acc, &y| acc + y) / i64_to_real(x.len() as i64)).collect()
+    }
 }

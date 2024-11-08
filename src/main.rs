@@ -28,7 +28,7 @@ fn main() {
         .eta(Eta::Const(1.0))
         .train();
 
-    let res = net.run(&input, &optimized);
+    let res = net.run(&input, &optimized.params());
     println!("res2: {:?}", res);
     println!("new params: {:?}", optimized);
 }

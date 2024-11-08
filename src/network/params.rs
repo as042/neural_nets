@@ -99,7 +99,7 @@ impl<T: Real> Params<T> {
     }
 
     #[inline]
-    pub fn var_params<'t>(&self, tape: *mut Tape<T>) -> Params<Var<'t, T>> {
+    pub fn var_params<'t>(&self, tape: *const Tape<T>) -> Params<Var<'t, T>> {
         let num_weights = self.weights().len();
         let num_biases = self.biases().len();
 

@@ -5,6 +5,7 @@ use crate::training::{clamp_settings::ClampSettings, data_set::DataSet, training
 
 use super::cost::CostFn;
 use super::eta::Eta;
+use super::training_results::TrainingResults;
 
 #[derive(Clone, Debug, PartialEq, PartialOrd)]
 pub struct NetworkTrainer<'t, T: Real> {
@@ -119,11 +120,12 @@ impl<'t, T: Real> NetworkTrainer<'t, T> {
     }
 
     #[inline]
-    pub fn train(self) -> Params<T> {
+    pub fn train(self) -> TrainingResults<T> {
         if self.params.is_none() { panic!("Params must be explicitly set") };
         if self.batch_size.is_none() { panic!("Batch size must be explicitly set") };
         if self.num_epochs.is_none() { panic!("Num epochs must be explicitly set") };
         if self.data_set.is_none() { panic!("Data set must be explicitly set") };
+        if self.batch_size.unwrap() > self.data_set.clone().unwrap().len() { panic!("Batch size cannot be larger than data set") }
 
         let settings = TrainingSettings {
             batch_size: self.batch_size.unwrap(),
@@ -135,7 +137,7 @@ impl<'t, T: Real> NetworkTrainer<'t, T> {
             stoch_shuffle_seed: self.stoch_shuffle_seed,
         };
 
-        self.network.train::<T, Var<T>>(&settings, self.params.unwrap())
+        self.network.train::<T>(&settings, self.params.unwrap())
     }
 }
 
@@ -177,7 +179,7 @@ mod tests {
             .eta(Eta::point_one())
             .train();
     
-        let res = net.run(&input, &optimized);
+        let res = net.run(&input, &optimized.params());
         println!("res2: {:?}", res);
         println!("new params: {:?}", optimized);
     }
