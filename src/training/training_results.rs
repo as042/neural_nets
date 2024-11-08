@@ -38,7 +38,17 @@ impl<T: Real> TrainingResults<T> {
 
     /// Returns the average cost for each epoch.
     #[inline]
-    pub fn epoch_cost(&self) -> Vec<T> {
-        self.avg_costs.iter().map(|x| x.iter().fold(T::zero(), |acc, &y| acc + y) / i64_to_real(x.len() as i64)).collect()
+    pub fn epoch_cost(&self, dec_places: usize) -> Vec<T> {
+        let two = T::one() + T::one();
+        let ten = two * two * two + two;
+        let mut ten_power = T::one();
+        for _ in 0..dec_places {
+            ten_power = ten_power * ten;
+        }
+        self.avg_costs
+            .iter()
+            .map(|x| x.iter().fold(T::zero(), |acc, &y| acc + y) / i64_to_real(x.len() as i64))
+            .map(|x| (x * ten_power).round() / ten_power)
+            .collect()
     }
 }

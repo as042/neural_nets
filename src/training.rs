@@ -109,7 +109,8 @@ impl Network {
 
     /// Adjusts weights and biases according to grad. KNOWN PROBLEM: Large eta value
     #[inline]
-    fn adjust_params<'t, T: Real>(grad: &[T], clamp_settings: &ClampSettings<T>, eta: &Eta<T>, epoch: usize, params: &Params<T>) -> Params<T> {
+    fn adjust_params<T>(grad: &[T], clamp_settings: &ClampSettings<T>, eta: &Eta<T>, epoch: usize, params: &Params<T>) -> Params<T> 
+    where T: Real, {
         let weights_len = params.weights().len();
         let mut new_weights = Vec::with_capacity(weights_len);
 
@@ -131,6 +132,28 @@ impl Network {
 
         // others not implemented
         Params::new(new_weights, new_biases, Vec::default())
+    }
+
+    /// Overly simple training algorithm for debugging purposes.
+    #[deprecated]
+    #[inline]
+    pub fn simple_train<'t, T: Real>(&self, settings: &TrainingSettings<'t, T>, params: Params<T>, i: usize) -> TrainingResults<T> {
+        let tape = Tape::new();
+        let vars = params.var_params(&tape);
+        let mut res = self.forward_pass(&settings.data_set.nth_input(i).to_vec(), &vars);
+    
+        let cost = res.cost(settings.cost_fn(), &settings.data_set.nth_output(i).to_vec());
+
+        let full_grad = cost.backprop();
+        let grad = full_grad.wrt_inputs();
+        let new_params = Self::adjust_params(grad, &settings.clamp_settings, &settings.eta, 0, &params);
+
+        TrainingResults {
+            params: new_params,
+            all_costs: vec![],
+            avg_costs: vec![],
+            all_grads: vec![],
+        }
     }
 }
 

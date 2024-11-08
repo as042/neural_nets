@@ -7,6 +7,7 @@ pub enum Eta<T: Real> {
 }
 
 impl<T: Real> Eta<T> {
+    /// Returns `Eta::Const(0.1)`.
     #[inline]
     pub fn point_one() -> Self {
         let two = T::one() + T::one();
@@ -14,6 +15,7 @@ impl<T: Real> Eta<T> {
         Eta::Const(T::one() / ten)
     }
 
+    /// Returns `Eta::Const(0.1)`.
     #[inline]
     pub fn point_zero_one() -> Self {
         let two = T::one() + T::one();
@@ -21,6 +23,7 @@ impl<T: Real> Eta<T> {
         Eta::Const(T::one() / ten / ten)
     }
 
+    /// Unwraps `self`, returning a tuple of both potential variants.
     #[inline]
     pub fn unwrap(&self) -> (Option<T>, Option<(T, T)>) {
         let mut inside = (None, None);
@@ -34,6 +37,7 @@ impl<T: Real> Eta<T> {
         inside
     }
 
+    /// Returns the appropriate eta value of `self`.
     #[inline]
     pub fn val(&self, epoch: usize) -> T {
         let inside = self.unwrap();
