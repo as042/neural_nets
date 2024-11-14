@@ -8,14 +8,18 @@ pub mod running;
 pub mod run_results;
 
 use std::fmt::Display;
+use std::fs::OpenOptions;
+use std::io::Write;
 
 use crate::autodiff::real::Real;
+use crate::save_information::{NetworkSaveData, SaveInformation};
 use crate::rng::Seed;
 use crate::training::trainer::NetworkTrainer;
 
 use layout::*;
 use network_builder::NetworkBuilder;
 use params::Params;
+use serde::Serialize;
 
 #[derive(Clone, Debug, Default, PartialEq, PartialOrd)]
 pub struct Network {
@@ -53,6 +57,23 @@ impl Network {
     #[inline]
     pub fn trainer<T: Real>(&self) -> NetworkTrainer<T> {
         NetworkTrainer::new(self.clone())
+    }
+
+    #[inline]
+    pub fn save_to_file<T: Real + Serialize>(&self, params: &Params<T>, save_info: SaveInformation) -> Result<(), std::io::Error> {
+        let mut file = OpenOptions::new()
+            .write(true)
+            .create(true)
+            .open(save_info.file_name())?;
+
+        let net_save_data = NetworkSaveData {
+            layout: self.layout().clone(),
+            params: params.clone(),
+        };
+
+        file.write(&ron::to_string(&net_save_data).unwrap().as_bytes())?;
+
+        Ok(())
     }
 }
 

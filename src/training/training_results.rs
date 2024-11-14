@@ -1,10 +1,17 @@
+use std::fs::OpenOptions;
+use std::io::Write;
+
+use serde::{Deserialize, Serialize};
+
 use crate::autodiff::real::Real;
-use crate::network::params::Params;
+use crate::network::{layout::Layout, params::Params};
+use crate::save_information::SaveInformation;
 use super::i64_to_real;
 
 /// The data returned after training a `Network`.
-#[derive(Clone, Debug, PartialEq, PartialOrd)]
+#[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct TrainingResults<T: Real> {
+    pub(super) layout: Layout,
     pub(super) params: Params<T>,
     pub(super) all_costs: Vec<Vec<Vec<T>>>,
     pub(super) avg_costs: Vec<Vec<T>>,
@@ -12,6 +19,12 @@ pub struct TrainingResults<T: Real> {
 }
 
 impl<T: Real> TrainingResults<T> {
+    /// Returns the network `Layout` that `self.params` is based on.
+    #[inline]
+    pub fn layout(&self) -> &Layout {
+        &self.layout
+    }
+
     /// Returns the new, optimized params.
     #[inline]
     pub fn params(&self) -> &Params<T> {
@@ -50,5 +63,19 @@ impl<T: Real> TrainingResults<T> {
             .map(|x| x.iter().fold(T::zero(), |acc, &y| acc + y) / i64_to_real(x.len() as i64))
             .map(|x| (x * ten_power).round() / ten_power)
             .collect()
+    }
+}
+
+impl<T: Real + Serialize> TrainingResults<T> {
+    #[inline]
+    pub fn save_to_file(&self, save_info: SaveInformation) -> Result<(), std::io::Error> {
+        let mut file = OpenOptions::new()
+            .write(true)
+            .create(true)
+            .open(save_info.file_name())?;
+
+        file.write(&ron::to_string(self).unwrap().as_bytes())?;
+
+        Ok(())
     }
 }

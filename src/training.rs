@@ -58,6 +58,7 @@ impl Network {
         }
 
         TrainingResults {
+            layout: self.layout().clone(),
             params,
             all_costs,
             avg_costs,
@@ -149,6 +150,7 @@ impl Network {
         let new_params = Self::adjust_params(grad, &settings, &settings.eta, 0, &params);
 
         TrainingResults {
+            layout: self.layout().clone(),
             params: new_params,
             all_costs: vec![],
             avg_costs: vec![],

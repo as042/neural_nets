@@ -1,9 +1,11 @@
+use serde::{Deserialize, Serialize};
+
 use crate::autodiff::{real::{real_math::RealMath, Real}, tape::Tape, var::Var};
 use crate::rng::{Seed, os_seed, lehmer_rng};
 
 use super::Layout;
 
-#[derive(Clone, Debug, Default, PartialEq, PartialOrd)]
+#[derive(Clone, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct Params<U: RealMath> {
     pub(super) weights: Vec<U>,
     pub(super) biases: Vec<U>,
