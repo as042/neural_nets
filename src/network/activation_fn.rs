@@ -98,16 +98,6 @@ impl ActivationFn {
     pub fn smooth_relu<'t, T: Real, U: RealMath + OperateWithReal<T>>(x: U) -> U {
         (x.exp()).ln_1p()
     }    
-
-    /// Modified relu for preventing eta from becoming negative.
-    #[inline]
-    pub fn eta_relu<'t, T: Real, U: RealMath + OperateWithReal<T>>(x: U) -> U {
-        let two = T::one() + T::one();
-        let ten = two * two * two + two;
-        let thousand = ten * ten * ten;
-        (x.signum() + T::one()) / two * (x.exp() + thousand.recip()).ln() +
-        (x.signum() - T::one()) / -two * thousand.recip() * (-x.abs()).exp()
-    }    
 }
 
 #[cfg(test)]
@@ -159,13 +149,5 @@ mod tests {
         assert!(ActivationFn::smooth_relu(f64::MIN) >= 0.0);
         assert!(ActivationFn::smooth_relu(f64::MAX).is_infinite());
         assert_eq!(ActivationFn::smooth_relu(0.0), 2f64.ln());
-    }
-    
-    #[test]
-    fn test_eta_relu() {
-        assert_eq!(ActivationFn::eta_relu(0.0), 1.001f64.ln());
-        assert_eq!(ActivationFn::eta_relu(100.0), 100.0);
-        assert!(ActivationFn::eta_relu(-0.12) < 0.0009);
-        assert!(ActivationFn::eta_relu(-100.0) >= 0.0);
     }
 }

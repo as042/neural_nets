@@ -10,7 +10,6 @@ use crate::autodiff::{real::Real, tape::Tape, var::Var};
 use crate::network::{Network, params::Params};
 use crate::rng::{i64_to_real, shuffle};
 
-use clamp_settings::ClampSettings;
 use eta::Eta;
 use training_results::TrainingResults;
 use training_settings::TrainingSettings;
@@ -86,7 +85,7 @@ impl Network {
         let full_gradient = avg_cost.backprop();
         let grad = full_gradient.wrt_inputs();
 
-        let new_params = Self::adjust_params(grad, settings.clamp_settings(), settings.eta(), e, &params);
+        let new_params = Self::adjust_params(grad, settings, settings.eta(), e, &params);
 
         (new_params, costs.iter().map(|x| x.val()).collect(), avg_cost.val(), grad.to_vec())
     }
@@ -109,7 +108,7 @@ impl Network {
 
     /// Adjusts weights and biases according to grad. KNOWN PROBLEM: Large eta value
     #[inline]
-    fn adjust_params<T>(grad: &[T], clamp_settings: &ClampSettings<T>, eta: &Eta<T>, epoch: usize, params: &Params<T>) -> Params<T> 
+    fn adjust_params<'t, T>(grad: &[T], settings: &TrainingSettings<'t, T>, eta: &Eta<T>, epoch: usize, params: &Params<T>) -> Params<T> 
     where T: Real, {
         let weights_len = params.weights().len();
         let mut new_weights = Vec::with_capacity(weights_len);
@@ -117,15 +116,16 @@ impl Network {
         let biases_len = params.biases().len();
         let mut new_biases = Vec::with_capacity(biases_len);
 
+        let eta_val = eta.val(epoch, settings.num_epochs);
         for w in 0..weights_len {
-            let weight = params.weights()[w] - eta.val(epoch) * grad[w];
-            let weight = weight.clamp(clamp_settings.weight_min(), clamp_settings.weight_max());
+            let weight = params.weights()[w] - eta_val * grad[w];
+            let weight = weight.clamp(settings.weight_min(), settings.weight_max());
 
             new_weights.push(weight);
         }
         for b in 0..biases_len {
-            let bias = params.biases()[b] - eta.val(epoch) * grad[weights_len + b];
-            let bias = bias.clamp(clamp_settings.bias_min(), clamp_settings.bias_max());
+            let bias = params.biases()[b] - eta_val * grad[weights_len + b];
+            let bias = bias.clamp(settings.bias_min(), settings.bias_max());
 
             new_biases.push(bias);
         }
@@ -146,7 +146,7 @@ impl Network {
 
         let full_grad = cost.backprop();
         let grad = full_grad.wrt_inputs();
-        let new_params = Self::adjust_params(grad, &settings.clamp_settings, &settings.eta, 0, &params);
+        let new_params = Self::adjust_params(grad, &settings, &settings.eta, 0, &params);
 
         TrainingResults {
             params: new_params,
@@ -254,7 +254,17 @@ mod tests {
         let params = Params::default_params(&layout);
         let grad = [1.0, -1.0, 2.0, -1.0, -2.0, 100.0, -10.0, 11.0, 23.0, -5.1, 1.1, -0.4];
 
-        let new_params = Network::adjust_params(&grad, &ClampSettings::NO_CLAMP, &Eta::point_one(), 0, &params);
+        let settings = TrainingSettings {
+            batch_size: 3,
+            num_epochs: 2,
+            cost_fn: CostFn::MAE,
+            clamp_settings: ClampSettings::NO_CLAMP,
+            eta: Eta::point_one(),
+            data_set: DataSet::default(),
+            stoch_shuffle_seed: Seed::Input(100.0),
+        };
+
+        let new_params = Network::adjust_params(&grad, &settings, &Eta::point_one(), 0, &params);
 
         assert_eq!(new_params.weights().iter().map(|x| (x * 100f64).round() / 100.0).collect::<Vec<f64>>(), &[0.9, 1.1, 0.8, 1.1, 1.2, -9.0, 2.0, -0.1]);
         assert_eq!(new_params.biases().iter().map(|x| (x * 100f64).round() / 100.0).collect::<Vec<f64>>(), &[-1.3, 1.51, 0.89, 1.04])

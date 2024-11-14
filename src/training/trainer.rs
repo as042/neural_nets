@@ -126,6 +126,12 @@ impl<'t, T: Real> NetworkTrainer<'t, T> {
         if self.num_epochs.is_none() { panic!("Num epochs must be explicitly set") };
         if self.data_set.is_none() { panic!("Data set must be explicitly set") };
         if self.batch_size.unwrap() > self.data_set.clone().unwrap().len() { panic!("Batch size cannot be larger than data set") }
+        if self.network.layout().layers()[0].num_neurons() != self.data_set.clone().unwrap().nth_input(0).len() { 
+            panic!("Network input len must match that of data set");
+        }
+        if self.network.layout().layers().last().unwrap().num_neurons() != self.data_set.clone().unwrap().nth_output(0).len() { 
+            panic!("Network output len must match that of data set");
+        }
 
         let settings = TrainingSettings {
             batch_size: self.batch_size.unwrap(),

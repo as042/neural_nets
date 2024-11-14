@@ -40,6 +40,26 @@ impl<'t, T: Real> TrainingSettings<'t, T> {
     }
 
     #[inline]
+    pub fn weight_min(&self) -> T {
+        self.clamp_settings.weight_min
+    }
+
+    #[inline]
+    pub fn weight_max(&self) -> T {
+        self.clamp_settings.weight_max
+    }
+
+    #[inline]
+    pub fn bias_min(&self) -> T {
+        self.clamp_settings.bias_min
+    }
+
+    #[inline]
+    pub fn bias_max(&self) -> T {
+        self.clamp_settings.bias_max
+    }
+
+    #[inline]
     pub fn eta(&self) -> &Eta<T>{
         &self.eta
     }
