@@ -1,15 +1,16 @@
 use std::fs::OpenOptions;
 use std::io::Write;
 
+use bitcode::{Decode, Encode};
 use serde::{Deserialize, Serialize};
 
 use crate::autodiff::real::Real;
 use crate::network::{layout::Layout, params::Params};
-use crate::save_information::SaveInformation;
+use crate::save_information::{FileNotation, SaveInformation};
 use super::i64_to_real;
 
 /// The data returned after training a `Network`.
-#[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize, Encode, Decode)]
 pub struct TrainingResults<T: Real> {
     pub(super) layout: Layout,
     pub(super) params: Params<T>,
@@ -66,15 +67,29 @@ impl<T: Real> TrainingResults<T> {
     }
 }
 
-impl<T: Real + Serialize> TrainingResults<T> {
+impl<T: Real + Serialize + Encode> TrainingResults<T> {
     #[inline]
     pub fn save_to_file(&self, save_info: SaveInformation) -> Result<(), std::io::Error> {
         let mut file = OpenOptions::new()
             .write(true)
-            .create(true)
+            .create_new(true)
             .open(save_info.file_name())?;
 
-        file.write(&ron::to_string(self).unwrap().as_bytes())?;
+        let buf;
+        if save_info.notation() == FileNotation::Binary {
+            buf = bitcode::encode(self);
+        }
+        else if save_info.notation() == FileNotation::JSON {
+            buf = serde_json::to_string(self).unwrap().as_bytes().to_vec();
+        }
+        else if save_info.notation() == FileNotation::RON {
+            buf = ron::to_string(self).unwrap().as_bytes().to_vec();
+        }
+        else {
+            buf = toml::to_string(self).unwrap().as_bytes().to_vec();
+        }
+
+        file.write(&buf)?;
 
         Ok(())
     }

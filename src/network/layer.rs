@@ -1,9 +1,10 @@
+use bitcode::{Decode, Encode};
 use serde::{Deserialize, Serialize};
 
 use super::activation_fn::ActivationFn;
 
 // A group of `Neuron`s with similar function.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Encode, Decode)]
 pub struct Layer {
     pub(crate) layer_type: LayerType,
     pub(crate) activation_fn: ActivationFn,
@@ -48,7 +49,7 @@ impl Layer {
 }
 
 /// The type of a `Layer`.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Encode, Decode)]
 pub enum LayerType {
     #[default]
     Input,

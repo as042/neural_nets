@@ -29,7 +29,7 @@ fn main() {
         .stoch_shuffle_seed(Seed::OS)
         .train();
 
-    train_res.save_to_file(SaveInformation::new("training_results.ron", FileNotation::RON)).unwrap();
+    train_res.save_to_file(SaveInformation::new("training_results.toml", FileNotation::TOML)).unwrap();
     println!("costs: {:?}", train_res.epoch_cost(5));
     println!("new params: {:?}", train_res.params());
 }

@@ -12,10 +12,12 @@ use std::fs::OpenOptions;
 use std::io::Write;
 
 use crate::autodiff::real::Real;
+use crate::prelude::FileNotation;
 use crate::save_information::{NetworkSaveData, SaveInformation};
 use crate::rng::Seed;
 use crate::training::trainer::NetworkTrainer;
 
+use bitcode::Encode;
 use layout::*;
 use network_builder::NetworkBuilder;
 use params::Params;
@@ -60,10 +62,10 @@ impl Network {
     }
 
     #[inline]
-    pub fn save_to_file<T: Real + Serialize>(&self, params: &Params<T>, save_info: SaveInformation) -> Result<(), std::io::Error> {
+    pub fn save_to_file<T: Real + Serialize + Encode>(&self, params: &Params<T>, save_info: SaveInformation) -> Result<(), std::io::Error> {
         let mut file = OpenOptions::new()
             .write(true)
-            .create(true)
+            .create_new(true)
             .open(save_info.file_name())?;
 
         let net_save_data = NetworkSaveData {
@@ -71,7 +73,21 @@ impl Network {
             params: params.clone(),
         };
 
-        file.write(&ron::to_string(&net_save_data).unwrap().as_bytes())?;
+        let buf;
+        if save_info.notation() == FileNotation::Binary {
+            buf = bitcode::encode(&net_save_data);
+        }
+        else if save_info.notation() == FileNotation::JSON {
+            buf = serde_json::to_string(&net_save_data).unwrap().as_bytes().to_vec();
+        }
+        else if save_info.notation() == FileNotation::RON {
+            buf = ron::to_string(&net_save_data).unwrap().as_bytes().to_vec();
+        }
+        else {
+            buf = toml::to_string(&net_save_data).unwrap().as_bytes().to_vec();
+        }
+
+        file.write(&buf)?;
 
         Ok(())
     }

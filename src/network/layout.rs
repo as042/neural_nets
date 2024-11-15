@@ -1,11 +1,12 @@
 use std::fmt::Display;
 
+use bitcode::{Decode, Encode};
 use serde::{Deserialize, Serialize};
 
 use super::activation_fn::ActivationFn;
 use super::layer::{Layer, LayerType};
 
-#[derive(Clone, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize, Encode, Decode)]
 pub struct Layout {
     pub(super) layers: Vec<Layer>,
 }

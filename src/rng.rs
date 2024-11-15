@@ -127,11 +127,11 @@ mod tests {
     
     #[test]
     fn test_os_seed() {
-        let s: f64 = os_seed();
+        let s = os_seed::<f64>();
     
         std::thread::sleep(std::time::Duration::from_micros(1));
     
-        let s2 = os_seed();
+        let s2 = os_seed::<f64>();
     
         assert_ne!(s, s2);
     }

@@ -1,5 +1,6 @@
 use std::path::Path;
 
+use bitcode::{Decode, Encode};
 use serde::{Deserialize, Serialize};
 
 use crate::autodiff::real::Real;
@@ -34,13 +35,13 @@ impl SaveInformation {
 #[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd)]
 pub enum FileNotation {
     #[default]
-    Bytes,
+    Binary,
     JSON,
     RON,
     TOML,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Encode, Decode)]
 pub(crate) struct NetworkSaveData<T: Real + Serialize> {
     pub(crate) layout: Layout,
     pub(crate) params: Params<T>,
