@@ -3,7 +3,7 @@ use crate::autodiff::real::real_math::RealMath;
 use crate::autodiff::real::Real;
 use crate::network::run_results::RunResults;
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, Default)]
 pub enum CostFn<T: Real, U: RealMath + OperateWithReal<T>> {
     #[default]
     MSE,

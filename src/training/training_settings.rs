@@ -7,7 +7,7 @@ use super::cost::CostFn;
 use super::data_set::DataSet;
 use super::eta::Eta;
 
-#[derive(Clone, Debug, Default, PartialEq, PartialOrd)]
+#[derive(Clone, Debug, Default)]
 pub struct TrainingSettings<'t, T: Real> {
     pub batch_size: usize,
     pub num_epochs: usize,

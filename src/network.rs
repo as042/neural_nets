@@ -57,7 +57,7 @@ impl Network {
     }
 
     #[inline]
-    pub fn trainer<T: Real>(&self) -> NetworkTrainer<T> {
+    pub fn trainer<T: Real>(&self) -> NetworkTrainer<'_, T> {
         NetworkTrainer::new(self.clone())
     }
 

@@ -27,7 +27,7 @@ impl<T: Real> Tape<T> {
     }
 
     #[inline]
-    pub fn new_var(&self, value: T) -> Var<T> {
+    pub fn new_var(&self, value: T) -> Var<'_, T> {
         let len = self.nodes.borrow().len();
         self.nodes.borrow_mut().push(
             Node {
@@ -47,7 +47,7 @@ impl<T: Real> Tape<T> {
     }
 
     #[inline]
-    pub fn new_vars(&self, values: &Vec<T>) -> Vec<Var<T>> {
+    pub fn new_vars(&'_ self, values: &Vec<T>) -> Vec<Var<'_, T>> {
         let mut vec = Vec::default();
         for v in values {
             vec.push(self.new_var(*v));
@@ -57,12 +57,12 @@ impl<T: Real> Tape<T> {
     }
 
     #[inline]
-    pub fn unary_op(&self, partial: T, index: usize, new_value: T) -> Var<T> {
+    pub fn unary_op(&self, partial: T, index: usize, new_value: T) -> Var<'_, T> {
         self.binary_op(partial, T::zero(), index, index, new_value)
     }
 
     #[inline]
-    pub fn binary_op(&self, lhs_partial: T, rhs_partial: T, lhs_index: usize, rhs_index: usize, new_value: T) -> Var<T> {
+    pub fn binary_op(&self, lhs_partial: T, rhs_partial: T, lhs_index: usize, rhs_index: usize, new_value: T) -> Var<'_, T> {
         let len = self.nodes.borrow().len();
         self.nodes.borrow_mut().push(
             Node {

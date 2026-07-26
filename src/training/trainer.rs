@@ -7,7 +7,7 @@ use super::cost::CostFn;
 use super::eta::Eta;
 use super::training_results::TrainingResults;
 
-#[derive(Clone, Debug, PartialEq, PartialOrd)]
+#[derive(Clone, Debug)]
 pub struct NetworkTrainer<'t, T: Real> {
     network: Network,
     params: Option<Params<T>>,
